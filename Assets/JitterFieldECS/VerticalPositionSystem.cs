@@ -12,13 +12,14 @@ public class VerticalPositionSystem : JobComponentSystem {
 
     protected override void OnCreate() {
         // Cached access to a set of ComponentData based on a specific query
-        m_Group = GetEntityQuery(typeof(Translation));
+        m_Group = GetEntityQuery(typeof(Translation), ComponentType.ReadOnly<FieldCubeTag>());
     }
 
     [BurstCompile]
     struct VerticalPositionJob : IJobChunk {
         public float deltaTime;
         public ArchetypeChunkComponentType<Translation> translationType;
+        [ReadOnly] public ArchetypeChunkComponentType<FieldCubeTag> tagType;
 
         public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
             var chunkTranslation = chunk.GetNativeArray(translationType);
@@ -41,10 +42,12 @@ public class VerticalPositionSystem : JobComponentSystem {
         // Explicitly declare:
         // - Read-Write access to Translation
         var type = GetArchetypeChunkComponentType<Translation>();
+        var tah = GetArchetypeChunkComponentType<FieldCubeTag>(true);
 
         var job = new VerticalPositionJob() {
             deltaTime = Time.time,
-            translationType = type
+            translationType = type,
+            tagType = tah
         };
         return job.Schedule(m_Group, inputDependencies);
     }
