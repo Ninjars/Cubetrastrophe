@@ -41,6 +41,15 @@ internal class PerlinProvider {
 						/ totalWeight, exponent);
 	}
 
+	internal float get(float x, float y, float dx, float dy) {
+        x += offsetX + dx;
+        y += offsetY + dy;
+		return Mathf.Pow((getPerlin(scale, x, y) 
+							+ getPerlin(scale * 0.5f, x, y) * weight1
+							+ getPerlin(scale * 0.2f, x, y) * weight2)
+						/ totalWeight, exponent);
+	}
+
     private float getPerlin(float scale, float x, float y) {
         var value = Mathf.Clamp01(Mathf.PerlinNoise(x / scale, y / scale));
         return value;

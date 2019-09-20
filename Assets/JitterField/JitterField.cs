@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using Unity.Jobs;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class JitterField : MonoBehaviour {
 
@@ -26,10 +23,6 @@ public class JitterField : MonoBehaviour {
     }
 
     void Update() {
-        updateSingleThreaded();
-    }
-
-    private void updateSingleThreaded() {
         noiseMachine.updateOffset(0.1f, 0.1f);
         for (var x = 0; x < gridSize; x++) {
             for (var y = 0; y < gridSize; y++) {
@@ -37,9 +30,5 @@ public class JitterField : MonoBehaviour {
                 cube.energy = noiseMachine.get(x, y);
             }
         }
-    }
-
-    private void updateWithJob() {
-        
     }
 }
