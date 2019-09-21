@@ -326,9 +326,6 @@ MonoBehaviour:
   cubePrefab: {fileID: 8333676704286471873, guid: dccd2bd609a6f4095914f5bc6b86f1cf,
     type: 3}
   gridSize: 100
-  spherePrefab: {fileID: 1439515347430494525, guid: 5515e014d9e28462c934ce839014e283,
-    type: 3}
-  sphereCount: 0
 --- !u!4 &1698561775
 Transform:
   m_ObjectHideFlags: 0
