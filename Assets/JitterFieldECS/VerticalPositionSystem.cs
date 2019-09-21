@@ -26,14 +26,9 @@ public class VerticalPositionSystem : JobComponentSystem {
             for (var i = 0; i < chunk.Count; i++) {
                 var translation = chunkTranslation[i].Value;
                 chunkTranslation[i] = new Translation {
-                    Value = new float3(translation.x, getPerlin(deltaTime, translation.x, translation.z), translation.z)
+                    Value = new float3(translation.x, Perlin.getPerlin(deltaTime, translation.x, translation.z), translation.z)
                 };
             }
-        }
-
-        private float getPerlin(float offset, float x, float y) {
-            var scale = 0.3f;
-            return Mathf.Clamp01(Mathf.PerlinNoise(x * scale + 1000 + offset, y * scale + 2000));
         }
     }
 
@@ -42,12 +37,12 @@ public class VerticalPositionSystem : JobComponentSystem {
         // Explicitly declare:
         // - Read-Write access to Translation
         var type = GetArchetypeChunkComponentType<Translation>();
-        var tah = GetArchetypeChunkComponentType<FieldCubeTag>(true);
+        var tag = GetArchetypeChunkComponentType<FieldCubeTag>(true);
 
         var job = new VerticalPositionJob() {
             deltaTime = Time.time,
             translationType = type,
-            tagType = tah
+            tagType = tag
         };
         return job.Schedule(m_Group, inputDependencies);
     }

@@ -1,9 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using Unity.Burst;
-using Unity.Collections;
-using Unity.Entities;
-using Unity.Jobs;
+﻿using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
@@ -33,12 +28,8 @@ public class JitterFieldECS : MonoBehaviour {
 
         for (var i = 0; i < sphereCount; i++) {
             var instance = entityManager.Instantiate(sphere);
-            var position = transform.TransformPoint(new float3(0 + UnityEngine.Random.value, 2 + i * 0.6f, gridOffset + UnityEngine.Random.value));
+            var position = transform.TransformPoint(new float3(UnityEngine.Random.value, 2 + i * 0.6f, gridOffset / 3 + UnityEngine.Random.value));
             entityManager.SetComponentData(instance, new Translation { Value = position });
         }
-    }
-
-    void Update() {
-
     }
 }

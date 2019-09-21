@@ -12,6 +12,9 @@ public class JitterCube : MonoBehaviour {
     }
 
     void FixedUpdate() {
-        rb.position =  new Vector3(transform.position.x, energy, transform.position.z);
+        rb.position =  new Vector3(
+            transform.position.x, 
+            Perlin.getPerlin(Time.time, transform.position.x, transform.position.z), 
+            transform.position.z);
     }
 }
