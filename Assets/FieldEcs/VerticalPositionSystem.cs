@@ -19,7 +19,6 @@ public class VerticalPositionSystem : JobComponentSystem {
     struct VerticalPositionJob : IJobChunk {
         public float deltaTime;
         public ArchetypeChunkComponentType<Translation> translationType;
-        [ReadOnly] public ArchetypeChunkComponentType<FieldCubeTag> tagType;
 
         public void Execute(ArchetypeChunk chunk, int chunkIndex, int firstEntityIndex) {
             var chunkTranslation = chunk.GetNativeArray(translationType);
@@ -36,14 +35,9 @@ public class VerticalPositionSystem : JobComponentSystem {
     protected override JobHandle OnUpdate(JobHandle inputDependencies) {
         // Explicitly declare:
         // - Read-Write access to Translation
-        var type = GetArchetypeChunkComponentType<Translation>();
-        var tag = GetArchetypeChunkComponentType<FieldCubeTag>(true);
-
-        var job = new VerticalPositionJob() {
+        return new VerticalPositionJob() {
             deltaTime = Time.time,
-            translationType = type,
-            tagType = tag
-        };
-        return job.Schedule(m_Group, inputDependencies);
+            translationType = GetArchetypeChunkComponentType<Translation>()
+        }.Schedule(m_Group, inputDependencies);
     }
 }

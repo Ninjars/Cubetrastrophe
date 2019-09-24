@@ -11,19 +11,22 @@ public class ObjectSpawnerECS : MonoBehaviour {
 
     private float spawnTimer;
     private Entity entity;
+    private EntityManager entityManager;
 
     void Start() {
         entity = GameObjectConversionUtility.ConvertGameObjectHierarchy(prefab, World.Active);
+        entityManager = World.Active.EntityManager;
     }
 
     void FixedUpdate() {
         spawnTimer += Time.fixedDeltaTime;
         if (spawnTimer > spawnInterval) {
-            var entityManager = World.Active.EntityManager;
-            var instance = entityManager.Instantiate(entity);
-            var position = transform.TransformPoint(new float3(UnityEngine.Random.value, 20, UnityEngine.Random.value));
-
-            entityManager.SetComponentData(instance, new Translation { Value = position });
+            entityManager.SetComponentData(
+                entityManager.Instantiate(entity), 
+                new Translation { 
+                    Value = transform.TransformPoint(new float3(UnityEngine.Random.value, 0, UnityEngine.Random.value))
+                }
+            );
             spawnTimer = 0;
         }
     }
