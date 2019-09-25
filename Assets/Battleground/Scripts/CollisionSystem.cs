@@ -10,35 +10,33 @@ using UnityEngine;
 public class CollisionSystem : JobComponentSystem {
 
     struct CollisionJob : ICollisionEventsJob {
-        [ReadOnly] public PhysicsWorld physicsWorld;
-        [ReadOnly] public NativeSlice<RigidBody> Bodies;
+        public EntityCommandBuffer commandBuffer;
 
         public void Execute(CollisionEvent ev) {
-            Entity a = physicsWorld.Bodies[ev.BodyIndices.BodyAIndex].Entity;
-            Entity b = physicsWorld.Bodies[ev.BodyIndices.BodyBIndex].Entity;
+            Entity a = ev.Entities.EntityA;
+            Entity b = ev.Entities.EntityB;
             Debug.Log($"collision event: Normal {ev.Normal} Entities: {a}, {b}");
+            commandBuffer.DestroyEntity(a);
         }
     }
 
     BuildPhysicsWorld buildPhysicsWorldSystem;
     StepPhysicsWorld stepPhysicsWorld;
-    EndFramePhysicsSystem endFramePhysicsSystem;
+    EndSimulationEntityCommandBufferSystem bufferSystem;
 
     protected override void OnCreate() {
         buildPhysicsWorldSystem = World.GetOrCreateSystem<BuildPhysicsWorld>();
         stepPhysicsWorld = World.GetOrCreateSystem<StepPhysicsWorld>();
+        bufferSystem = World.Active.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
-        SimulationCallbacks.Callback testCollisionEventCallback = (ref ISimulation simulation, ref PhysicsWorld world, JobHandle inDeps) => {
-            return new CollisionJob {
-                physicsWorld = world,
-                Bodies = world.Bodies
-            }.Schedule(simulation, ref world, inDeps);
-        };
+        var job = new CollisionJob {
+            commandBuffer = bufferSystem.CreateCommandBuffer()
+        }.Schedule(stepPhysicsWorld.Simulation, ref buildPhysicsWorldSystem.PhysicsWorld, inputDeps);
 
-        stepPhysicsWorld.EnqueueCallback(SimulationCallbacks.Phase.PostSolveJacobians, testCollisionEventCallback, inputDeps);
-
-        return inputDeps;
+        bufferSystem.AddJobHandleForProducer(inputDeps);
+        job.Complete();
+        return job;
     }
 }
