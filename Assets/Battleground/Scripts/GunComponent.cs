@@ -17,3 +17,5 @@ public struct GunState : IComponentData {
     public float currentReloadInterval;
     public int shotsRemaining;
 }
+
+public struct Projectile : IComponentData {}
