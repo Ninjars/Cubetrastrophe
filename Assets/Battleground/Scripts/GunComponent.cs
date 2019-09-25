@@ -6,6 +6,7 @@ using Unity.Mathematics;
 public struct GunData : IComponentData {
     public Entity projectileEntity;
     public float3 projectileOffset;
+    public float projectileVelocity;
     public float reloadInterval;
     public float fireInterval;
     public int shotsPerReload;
