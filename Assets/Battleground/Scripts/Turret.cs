@@ -43,7 +43,7 @@ public class Turret : MonoBehaviour {
             shotsPerReload = 3,
             shotDeviationRadians = 0.01f,
             maximumPitchDelta = 21f,
-            rotationSpeed = 5f,
+            rotationSpeed = 1f,
             pitchSpeed = 5f,
         });
         entityManager.AddComponentData(instance, new GunState {

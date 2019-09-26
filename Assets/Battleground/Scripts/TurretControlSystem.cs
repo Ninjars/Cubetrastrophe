@@ -25,7 +25,12 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
             [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
 
-        rotation.Value = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, math.up());
+        var targetRotation = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, math.up());
+
+        rotation.Value = math.slerp(rotation.Value, targetRotation, gun.rotationSpeed * deltaTime);
+
+        // rotation.Value = math.mul(math.normalize(rotation.Value), quaternion.AxisAngle(math.up(), quaternion. targetRotation.));
+        // rotation.Value = math.mul(math.normalize(rotation.Value), quaternion.AxisAngle(new float3(1.0f, 0.0f, 0.0f), rotateSpeed * dt * movementInfo.pitch));
 
         // rotation.Value = math.mul(math.normalizesafe(rotation.Value), quaternion.AxisAngle(math.up(), 0.01f));
         if (state.shotsRemaining > 0) {
