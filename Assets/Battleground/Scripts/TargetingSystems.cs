@@ -128,6 +128,59 @@ public class FindTargetJobSystem : JobComponentSystem {
     }
 }
 
+public class RefreshHasTargetSystem : JobComponentSystem {
+    private EndSimulationEntityCommandBufferSystem endSimCommandBufferSystem;
+    
+    private struct RefreshTargetJob : IJobForEachWithEntity<HasTarget> {
+        public EntityCommandBuffer.Concurrent commandBuffer;
+        public float deltaTime;
+        [ReadOnly] 
+        public ComponentDataFromEntity<Translation> translationType;
+
+        public void Execute(Entity entity, int index, ref HasTarget hasTarget) {
+            hasTarget.elapsedRefreshTime += deltaTime;
+            if (hasTarget.elapsedRefreshTime > hasTarget.refreshTargetPeriod) {
+                commandBuffer.RemoveComponent<HasTarget>(index, entity);
+            } else {
+                hasTarget.targetPosition = translationType[hasTarget.targetEntity].Value;
+            }
+        }
+    }
+
+    protected override void OnCreate() {
+        endSimCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+    }
+
+    protected override JobHandle OnUpdate(JobHandle inputDeps) {
+        var job = new RefreshTargetJob {
+            commandBuffer = endSimCommandBufferSystem.CreateCommandBuffer().ToConcurrent(),
+            deltaTime = Time.deltaTime,
+            translationType = GetComponentDataFromEntity<Translation>(true),
+        };
+
+        var jobHandle = job.Schedule(this, inputDeps);
+        endSimCommandBufferSystem.AddJobHandleForProducer(jobHandle);
+        return jobHandle;
+    }
+}
+
+/*
+// kept for comparison
+public class HasTargetRefresh : ComponentSystem {
+    protected override void OnUpdate() {
+        var time = Time.deltaTime;
+        Entities.ForEach((Entity entity, ref Translation translation, ref HasTarget hasTarget) => {
+            hasTarget.elapsedRefreshTime += time;
+            if (hasTarget.elapsedRefreshTime > hasTarget.refreshTargetPeriod) {
+                PostUpdateCommands.RemoveComponent<HasTarget>(entity);
+            } else {
+                hasTarget.targetPosition = World.Active.EntityManager.GetComponentData<Translation>(hasTarget.targetEntity).Value;
+            }
+        });
+    }
+}
+*/
+
 /*
 // kept for comparison
 public class NearestTargetSystem : ComponentSystem {
@@ -166,18 +219,4 @@ public class NearestTargetSystem : ComponentSystem {
         });
     }
 }
- */
-
-public class HasTargetRefresh : ComponentSystem {
-    protected override void OnUpdate() {
-        var time = Time.deltaTime;
-        Entities.ForEach((Entity entity, ref Translation translation, ref HasTarget hasTarget) => {
-            hasTarget.elapsedRefreshTime += time;
-            if (hasTarget.elapsedRefreshTime > hasTarget.refreshTargetPeriod) {
-                PostUpdateCommands.RemoveComponent<HasTarget>(entity);
-            } else {
-                hasTarget.targetPosition = World.Active.EntityManager.GetComponentData<Translation>(hasTarget.targetEntity).Value;
-            }
-        });
-    }
-}
+*/
