@@ -6,6 +6,7 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 
+// developed with reference to Code Monkey at https://www.youtube.com/watch?v=nuxTq0AQAyY
 public class FindTargetJobSystem : JobComponentSystem {
     private EndSimulationEntityCommandBufferSystem endSimCommandBufferSystem;
     private EntityQuery targetQuery;
@@ -85,10 +86,13 @@ public class FindTargetJobSystem : JobComponentSystem {
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
+        // First gather the state data we want to operate on.
+        // We want both entity and translation information about the target, so extract this from the target query.
         var targetEntities = targetQuery.ToEntityArray(Allocator.TempJob);
         var targetTranslations = targetQuery.ToComponentDataArray<Translation>(Allocator.TempJob);
-        var targetArray = new NativeArray<EntityWithPosition>(targetEntities.Length, Allocator.TempJob);
 
+        // Construct a new array that merges the two data types together into simple structs.
+        var targetArray = new NativeArray<EntityWithPosition>(targetEntities.Length, Allocator.TempJob);
         for (int i = 0; i < targetArray.Length; i++) {
             targetArray[i] = new EntityWithPosition {
                 entity = targetEntities[i],
@@ -96,22 +100,26 @@ public class FindTargetJobSystem : JobComponentSystem {
             };
         }
 
+        // Clear up the intermediate native arrays; the native arrays passed to jobs are marked to be automatically deallocated.
         targetEntities.Dispose();
         targetTranslations.Dispose();
 
+        // We need to extract the closest target per searching unit, so we need an array whose length matches the unit count.
         var closestTargetArray = new NativeArray<EntityWithPosition>(searchingUnitQuery.CalculateEntityCount(), Allocator.TempJob);
         var findTargetJob = new FindTargetJob {
             targetArray = targetArray,
             closestTargetArray = closestTargetArray,
         };
 
-        // This separation is necessary because command buffers can't be used in Burst compiled structs
+        // This separation is necessary because command buffers can't be used in Burst compiled structs.
+        // We pass a reference to the same closestTargetArray to this job too, with the intention to read from it.
+        // This requires the sequencing of the jobs to be correct.
         var assignTargetJob = new AssignTargetJob {
             closestTargetArray = closestTargetArray,
             commandBuffer = endSimCommandBufferSystem.CreateCommandBuffer().ToConcurrent(),
         };
 
-        // this makes the "find target" job a prerequisit for the "assign target" job
+        // This makes the "find target" job a prerequisite for the "assign target" job, to ensure the closestTargetArray is initiated.
         var jobHandle = findTargetJob.Schedule(this, inputDeps);
         jobHandle = assignTargetJob.Schedule(this, jobHandle);
 
