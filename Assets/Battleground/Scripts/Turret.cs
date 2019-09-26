@@ -30,11 +30,11 @@ public class Turret : MonoBehaviour {
         var instance = entityManager.Instantiate(turretEntity);
         entityManager.SetComponentData(
             instance,
-            new Translation { Value = transform.TransformPoint(0, 0, 0) }
+            new Translation { Value = transform.TransformPoint(0, 0.815f, 0) }
         );
         entityManager.AddComponentData(instance, new GunData {
             projectileEntity = projectileEntity,
-            projectileOffset = new float3(1.3f, 1.33f, 0),
+            projectileOffset = new float3(1.3f, 0.52f, 0),
             projectileVelocity = 100f,
             reloadInterval = 1f,
             fireInterval = 0.25f,
