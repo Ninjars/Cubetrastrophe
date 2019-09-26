@@ -9,7 +9,7 @@ using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
 
-struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, GunState> {
+struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget, GunState> {
     public EntityCommandBuffer commandBuffer;
     public float deltaTime;
     [DeallocateOnJobCompletion]
@@ -22,8 +22,12 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, GunState> 
             [ReadOnly] ref LocalToWorld transform,
             ref Rotation rotation,
             [ReadOnly] ref GunData gun,
+            [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
-        rotation.Value = math.mul(math.normalizesafe(rotation.Value), quaternion.AxisAngle(math.up(), 0.01f));
+
+        rotation.Value = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, math.up());
+
+        // rotation.Value = math.mul(math.normalizesafe(rotation.Value), quaternion.AxisAngle(math.up(), 0.01f));
         if (state.shotsRemaining > 0) {
             if (state.currentFireInterval > 0) {
                 state.currentFireInterval = state.currentFireInterval - deltaTime;
@@ -74,13 +78,13 @@ public class TurretControlSystem : JobComponentSystem {
     private NativeArray<Unity.Mathematics.Random> randomSources;
     private Unity.Mathematics.Random rnd;
 
-
     protected override void OnCreate() {
         // Cached access to a set of ComponentData based on a specific query
         queryGroup = GetEntityQuery(
             ComponentType.ReadOnly<LocalToWorld>(),
             typeof(Rotation),
             ComponentType.ReadOnly<GunData>(),
+            ComponentType.ReadOnly<HasTarget>(),
             typeof(GunState));
         bufferSystem = World.Active.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
         rnd = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(int.MinValue, int.MaxValue));

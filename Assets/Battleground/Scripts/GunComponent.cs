@@ -23,5 +23,3 @@ public struct GunState : IComponentData {
 }
 
 public struct Projectile : IComponentData {}
-
-public struct TargetTag : IComponentData {}
