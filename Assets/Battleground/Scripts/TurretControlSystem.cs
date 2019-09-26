@@ -1,6 +1,7 @@
 using System.Threading;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -11,6 +12,11 @@ using UnityEngine;
 struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, GunState> {
     public EntityCommandBuffer commandBuffer;
     public float deltaTime;
+    [DeallocateOnJobCompletion]
+    [NativeDisableParallelForRestriction]
+    public NativeArray<Unity.Mathematics.Random> randomSources;
+    [NativeSetThreadIndex]
+    private int threadIndex;
 
     public void Execute(
             [ReadOnly] ref LocalToWorld transform,
@@ -38,11 +44,16 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, GunState> 
     private void fireProjectile(ref LocalToWorld transform, ref Rotation rotation, ref GunData gun, ref GunState state) {
         state.shotsRemaining = state.shotsRemaining - 1;
 
+        var rnd = randomSources[threadIndex];
+        var xOffset = quaternion.AxisAngle(math.up(), (rnd.NextFloat() * 2 - 1) * gun.shotDeviationRadians);
+        var yOffset = quaternion.AxisAngle(new float3(0, 0, 1), (rnd.NextFloat() * 2 - 1) * gun.shotDeviationRadians);
+        var bulletFacing = math.mul(math.mul(rotation.Value, xOffset), yOffset);
+
         var instance = commandBuffer.Instantiate(gun.projectileEntity);
         commandBuffer.SetComponent(instance, new Translation { Value = transform.Position + math.rotate(rotation.Value.value, gun.projectileOffset) });
-        commandBuffer.SetComponent(instance, new Rotation { Value = rotation.Value });
+        commandBuffer.SetComponent(instance, new Rotation { Value = bulletFacing });
         commandBuffer.SetComponent(instance, new PhysicsVelocity() {
-            Linear = math.mul(rotation.Value.value, new float3(gun.projectileVelocity, 0, 0)),
+            Linear = math.mul(bulletFacing, new float3(gun.projectileVelocity, 0, 0)),
             Angular = float3.zero
         });
 
@@ -58,8 +69,11 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, GunState> 
 }
 
 public class TurretControlSystem : JobComponentSystem {
-    EntityQuery queryGroup;
-    EndSimulationEntityCommandBufferSystem bufferSystem;
+    private EntityQuery queryGroup;
+    private EndSimulationEntityCommandBufferSystem bufferSystem;
+    private NativeArray<Unity.Mathematics.Random> randomSources;
+    private Unity.Mathematics.Random rnd;
+
 
     protected override void OnCreate() {
         // Cached access to a set of ComponentData based on a specific query
@@ -69,12 +83,18 @@ public class TurretControlSystem : JobComponentSystem {
             ComponentType.ReadOnly<GunData>(),
             typeof(GunState));
         bufferSystem = World.Active.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+        rnd = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(int.MinValue, int.MaxValue));
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDependencies) {
+        randomSources = new NativeArray<Unity.Mathematics.Random>(System.Environment.ProcessorCount + 1, Allocator.TempJob);
+        for (int i = 0; i < randomSources.Length; i++) {
+            randomSources[i] = new Unity.Mathematics.Random((uint) rnd.NextInt());
+        }
         var job = new UpdateTurretJob() {
             commandBuffer = bufferSystem.CreateCommandBuffer(),
-            deltaTime = Time.deltaTime
+            deltaTime = Time.deltaTime,
+            randomSources = randomSources,
         }.ScheduleSingle(queryGroup, inputDependencies);
         bufferSystem.AddJobHandleForProducer(job);
         return job;

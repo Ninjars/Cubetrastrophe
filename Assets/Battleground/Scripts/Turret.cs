@@ -36,9 +36,13 @@ public class Turret : MonoBehaviour {
             projectileEntity = projectileEntity,
             projectileOffset = new float3(1.3f, 0.52f, 0),
             projectileVelocity = 100f,
-            reloadInterval = 1f,
-            fireInterval = 0.25f,
-            shotsPerReload = 4,
+            reloadInterval = 0.5f,
+            fireInterval = 0.1f,
+            shotsPerReload = 3,
+            shotDeviationRadians = 0.01f,
+            maximumPitchDelta = 21f,
+            rotationSpeed = 5f,
+            pitchSpeed = 5f,
         });
         entityManager.AddComponentData(instance, new GunState {
             currentFireInterval = 0,
