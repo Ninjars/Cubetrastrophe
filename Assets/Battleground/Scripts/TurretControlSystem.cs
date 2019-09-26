@@ -53,7 +53,7 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, GunState> 
         commandBuffer.SetComponent(instance, new Translation { Value = transform.Position + math.rotate(rotation.Value.value, gun.projectileOffset) });
         commandBuffer.SetComponent(instance, new Rotation { Value = bulletFacing });
         commandBuffer.SetComponent(instance, new PhysicsVelocity() {
-            Linear = math.mul(bulletFacing, new float3(gun.projectileVelocity, 0, 0)),
+            Linear = math.mul(bulletFacing, new float3(0, 0, gun.projectileVelocity)),
             Angular = float3.zero
         });
 
