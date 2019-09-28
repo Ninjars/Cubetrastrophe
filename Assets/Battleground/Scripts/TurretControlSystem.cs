@@ -9,6 +9,7 @@ using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
 
+// credit for aid with the quaternion -> axis angle maths https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm
 struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget, GunState> {
     public EntityCommandBuffer commandBuffer;
     public float deltaTime;
