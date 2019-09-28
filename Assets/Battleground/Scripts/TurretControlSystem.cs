@@ -85,7 +85,7 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
 
         var rnd = randomSources[threadIndex];
         var xOffset = quaternion.AxisAngle(math.up(), (rnd.NextFloat() * 2 - 1) * gun.shotDeviation);
-        var yOffset = quaternion.AxisAngle(new float3(0, 0, 1), (rnd.NextFloat() * 2 - 1) * gun.shotDeviation);
+        var yOffset = quaternion.AxisAngle(new float3(1, 0, 0), (rnd.NextFloat() * 2 - 1) * gun.shotDeviation);
         var bulletFacing = math.mul(math.mul(rotation.Value, xOffset), yOffset);
 
         var instance = commandBuffer.Instantiate(gun.projectileEntity);
