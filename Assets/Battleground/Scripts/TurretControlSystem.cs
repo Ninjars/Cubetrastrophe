@@ -18,6 +18,21 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
     [NativeSetThreadIndex]
     private int threadIndex;
 
+    private float getRotationDelta(float targetAngle, float currentAngle, float maxAngle) {
+        float deltaAngle = targetAngle - currentAngle;
+        if (deltaAngle > math.PI) deltaAngle -= 2 * math.PI;
+        if (deltaAngle < -math.PI) deltaAngle += 2 * math.PI;
+        if (math.abs(deltaAngle) > maxAngle) {
+            if (deltaAngle < 0) {
+                return -maxAngle;
+            } else {
+                return maxAngle;
+            }
+        } else {
+            return deltaAngle;
+        }
+    }
+
     public void Execute(
             [ReadOnly] ref LocalToWorld transform,
             ref Rotation rotation,
@@ -25,14 +40,15 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
             [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
 
-        var targetRotation = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, math.up());
+        var targetFacingQuaternion = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, math.up());
+        var targetAxisRotations = axisAngles(targetFacingQuaternion);
+        var deltaX = getRotationDelta(targetAxisRotations.x, state.currentPitch, gun.pitchSpeed * deltaTime);
+        var deltaY = getRotationDelta(targetAxisRotations.y, state.currentRotation, gun.rotationSpeed * deltaTime);
 
-        rotation.Value = math.slerp(rotation.Value, targetRotation, gun.rotationSpeed * deltaTime);
+        state.currentPitch = math.min(gun.maximumPitchDelta, math.max(-gun.maximumPitchDelta, state.currentPitch + deltaX));
+        state.currentRotation = state.currentRotation + deltaY ;
+        rotation.Value = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
 
-        // rotation.Value = math.mul(math.normalize(rotation.Value), quaternion.AxisAngle(math.up(), quaternion. targetRotation.));
-        // rotation.Value = math.mul(math.normalize(rotation.Value), quaternion.AxisAngle(new float3(1.0f, 0.0f, 0.0f), rotateSpeed * dt * movementInfo.pitch));
-
-        // rotation.Value = math.mul(math.normalizesafe(rotation.Value), quaternion.AxisAngle(math.up(), 0.01f));
         if (state.shotsRemaining > 0) {
             if (state.currentFireInterval > 0) {
                 state.currentFireInterval = state.currentFireInterval - deltaTime;
@@ -49,7 +65,20 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
             }
         }
     }
-
+    
+    private float3 axisAngles(quaternion quaternion) {
+        float4 rotation = math.normalizesafe(quaternion).value;
+        var angle = 2 * math.acos(rotation.w);
+        var constant = math.sqrt(1 - rotation.w * rotation.w);
+        float3 axisOfRotation;
+        if (constant < 0.001) {
+            // angle is effectively 0
+            axisOfRotation = new float3(1, 0, 0);
+        } else {
+            axisOfRotation = new float3(rotation.x / constant, rotation.y / constant, rotation.z / constant);
+        }
+        return axisOfRotation * angle;
+    }
     private void fireProjectile(ref LocalToWorld transform, ref Rotation rotation, ref GunData gun, ref GunState state) {
         state.shotsRemaining = state.shotsRemaining - 1;
 

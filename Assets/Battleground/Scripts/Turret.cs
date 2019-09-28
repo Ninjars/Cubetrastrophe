@@ -42,7 +42,7 @@ public class Turret : MonoBehaviour {
             fireInterval = 0.1f,
             shotsPerReload = 3,
             shotDeviationRadians = 0.01f,
-            maximumPitchDelta = 21f,
+            maximumPitchDelta = math.radians(21f),
             rotationSpeed = 1f,
             pitchSpeed = 5f,
         });

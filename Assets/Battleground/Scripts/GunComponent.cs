@@ -20,6 +20,8 @@ public struct GunState : IComponentData {
     public float currentFireInterval;
     public float currentReloadInterval;
     public int shotsRemaining;
+    public float currentRotation;
+    public float currentPitch;
 }
 
 public struct Projectile : IComponentData {}
