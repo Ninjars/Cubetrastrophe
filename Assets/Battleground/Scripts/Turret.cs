@@ -16,23 +16,30 @@ public class Turret : MonoBehaviour {
         var entityManager = World.Active.EntityManager;
 
         var baseEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(basePrefab, World.Active);
+        var baseInstance = entityManager.Instantiate(baseEntity); 
         entityManager.SetComponentData(
-            entityManager.Instantiate(baseEntity),
-            new Translation {
-                Value = transform.TransformPoint(0, 0, 0)
-            }
+            baseInstance,
+            new Translation { Value = transform.TransformPoint(0, 0, 0) }
+        );
+        entityManager.SetComponentData(
+            baseInstance,
+            new Rotation { Value = transform.rotation }
         );
 
         Entity projectileEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(projectilePrefab, World.Active);
-        entityManager.AddComponentData(projectileEntity, new Projectile {});
+        entityManager.AddComponentData(projectileEntity, new Projectile { });
 
         Entity turretEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(turretPrefab, World.Active);
-        entityManager.AddComponentData(turretEntity, new DefenderTag {});
+        entityManager.AddComponentData(turretEntity, new DefenderTag { });
 
         var instance = entityManager.Instantiate(turretEntity);
         entityManager.SetComponentData(
             instance,
-            new Translation { Value = transform.TransformPoint(0, 0.815f, 0) }
+            new Translation { Value = new float3(transform.position) + math.mul(transform.rotation, new float3(0, 0.815f, 0)) }
+        );
+        entityManager.SetComponentData(
+            instance,
+            new Rotation { Value = transform.rotation }
         );
         entityManager.AddComponentData(instance, new GunData {
             projectileEntity = projectileEntity,
@@ -45,7 +52,16 @@ public class Turret : MonoBehaviour {
             maximumPitchDelta = math.radians(21f),
             rotationSpeed = 1f,
             pitchSpeed = 5f,
+            neutralRotation = transform.rotation,
+            localRotationAxis = transform.up,
+            localPitchAxis = transform.right,
         });
+        
+        var axisAngles = MathUtils.axisAngles(transform.rotation);
+        Debug.Log(
+            $"neutralRotation {math.degrees(axisAngles.x)}, {math.degrees(axisAngles.y)}, {math.degrees(axisAngles.z)}"
+            + $"localRotationAxis {transform.up}"
+        );
         entityManager.AddComponentData(instance, new GunState {
             currentFireInterval = 0,
             currentReloadInterval = 0,

@@ -40,15 +40,24 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
             [ReadOnly] ref GunData gun,
             [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
-
-        var targetFacingQuaternion = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, math.up());
-        var targetAxisRotations = axisAngles(targetFacingQuaternion);
+        var targetFacingQuaternion = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, gun.localRotationAxis);
+        var targetAxisRotations = MathUtils.axisAngles(targetFacingQuaternion);//new float3(math.radians(0), math.radians(-175), math.radians(10));
+        // targetAxisRotations = new float3(targetAxisRotations.x, targetAxisRotations.y, 0);
         var deltaX = getRotationDelta(targetAxisRotations.x, state.currentPitch, gun.pitchSpeed * deltaTime);
         var deltaY = getRotationDelta(targetAxisRotations.y, state.currentRotation, gun.rotationSpeed * deltaTime);
 
         state.currentPitch = math.min(gun.maximumPitchDelta, math.max(-gun.maximumPitchDelta, state.currentPitch + deltaX));
-        state.currentRotation = state.currentRotation + deltaY ;
-        rotation.Value = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
+        state.currentRotation = state.currentRotation + deltaY;
+
+        var localRotation = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
+        var worldRotation = math.mul(gun.neutralRotation, localRotation);
+        rotation.Value = worldRotation;
+
+        Debug.Log(
+        $"localRotation {math.degrees(state.currentPitch)}, {math.degrees(state.currentRotation)}, 0"
+        + $"\ntarget axis rotations {math.degrees(targetAxisRotations.x)}, {math.degrees(targetAxisRotations.y)}, {math.degrees(targetAxisRotations.z)}"
+        + $"\ntarget pos {targetData.targetPosition}, transform pos {transform.Position}, delta {targetData.targetPosition - transform.Position}"
+        );
 
         if (state.shotsRemaining > 0) {
             if (state.currentFireInterval > 0) {
@@ -66,20 +75,7 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
             }
         }
     }
-    
-    private float3 axisAngles(quaternion quaternion) {
-        float4 rotation = math.normalizesafe(quaternion).value;
-        var angle = 2 * math.acos(rotation.w);
-        var constant = math.sqrt(1 - rotation.w * rotation.w);
-        float3 axisOfRotation;
-        if (constant < 0.001) {
-            // angle is effectively 0
-            axisOfRotation = new float3(1, 0, 0);
-        } else {
-            axisOfRotation = new float3(rotation.x / constant, rotation.y / constant, rotation.z / constant);
-        }
-        return axisOfRotation * angle;
-    }
+
     private void fireProjectile(ref LocalToWorld transform, ref Rotation rotation, ref GunData gun, ref GunState state) {
         state.shotsRemaining = state.shotsRemaining - 1;
 

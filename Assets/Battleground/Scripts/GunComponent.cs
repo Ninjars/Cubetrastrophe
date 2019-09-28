@@ -1,6 +1,7 @@
 using System;
 using Unity.Entities;
 using Unity.Mathematics;
+using UnityEngine;
 
 [Serializable]
 public struct GunData : IComponentData {
@@ -14,6 +15,9 @@ public struct GunData : IComponentData {
     public float maximumPitchDelta;
     public float rotationSpeed;
     public float pitchSpeed;
+    public quaternion neutralRotation;
+    public float3 localRotationAxis;
+    internal float3 localPitchAxis;
 }
 
 public struct GunState : IComponentData {
