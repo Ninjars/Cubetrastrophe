@@ -9,6 +9,7 @@ using UnityEngine;
 public class TargetSpawner : MonoBehaviour {
     [SerializeField] private GameObject targetPrefab;
     [SerializeField] private int maxTargetCount;
+    [SerializeField] private float range;
     private EntityManager entityManager;
     private Entity targetEntity;
 
@@ -27,7 +28,7 @@ public class TargetSpawner : MonoBehaviour {
         var instance = entityManager.Instantiate(targetEntity);
         entityManager.SetComponentData(
             instance,
-            new Translation { Value = transform.TransformPoint(UnityEngine.Random.Range(-30, 30), 1f, UnityEngine.Random.Range(-30, 30)) }
+            new Translation { Value = transform.TransformPoint(UnityEngine.Random.Range(-range, range), 1f, UnityEngine.Random.Range(-range, range)) }
         );
     }
 }
