@@ -10,7 +10,7 @@ public struct GunData : IComponentData {
     public float reloadInterval;
     public float fireInterval;
     public int shotsPerReload;
-    public float shotDeviationRadians;
+    public float shotDeviation;
     public float maximumPitchDelta;
     public float rotationSpeed;
     public float pitchSpeed;
