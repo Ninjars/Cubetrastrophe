@@ -11,13 +11,16 @@ public class ProjectileImpactManager : MonoBehaviour {
 
     public static NativeQueue<ProjectileImpactEvent> queuedProjectileEvents;
 
-    public GameObject projectileImpactPrefab;
+    public GameObject dustImpactPrefab;
+    public GameObject metalImpactPrefab;
 
-    public static GameObject dustImpactPrefab { get; private set; }
+    public static GameObject dustImpactPrefabRef { get; private set; }
+    public static GameObject metalImpactPrefabRef { get; private set; }
 
     private void Awake() {
         queuedProjectileEvents = new NativeQueue<ProjectileImpactEvent>(Allocator.Persistent);
-        dustImpactPrefab = projectileImpactPrefab;
+        dustImpactPrefabRef = dustImpactPrefab;
+        metalImpactPrefabRef = metalImpactPrefab;
     }
 
     public struct ProjectileImpactEvent {
@@ -27,8 +30,26 @@ public class ProjectileImpactManager : MonoBehaviour {
         public float3 position;
     }
 
-    internal static void onImpact(float3 position, float3 normal) {
-        var effectInstance = GameObject.Instantiate(ProjectileImpactManager.dustImpactPrefab);
+    public enum ImpactType {
+        GROUND,
+        METAL
+    }
+
+    internal static void onImpact(ImpactType impactType, float3 position, float3 normal) {
+        if (math.isnan(position.x)) return;
+        GameObject prefab;
+        switch (impactType) {
+            case ImpactType.GROUND:
+                prefab = ProjectileImpactManager.dustImpactPrefabRef;
+                break;
+            case ImpactType.METAL:
+                prefab = ProjectileImpactManager.metalImpactPrefabRef;
+                break;
+            default:
+                prefab = ProjectileImpactManager.metalImpactPrefabRef;
+                break;
+        }
+        var effectInstance = GameObject.Instantiate(prefab);
         effectInstance.transform.position = new Vector3(position.x, position.y, position.z);
         effectInstance.transform.rotation = Quaternion.LookRotation(normal);
     }
@@ -51,10 +72,16 @@ public class QueuedActionSystem : ComponentSystem {
                 continue;
             }
 
+            ProjectileImpactManager.ImpactType impactType;
+            if (EntityManager.HasComponent<TargetTag>(projectileEvent.other) || EntityManager.HasComponent<Turret>(projectileEvent.other)) {
+                impactType = ProjectileImpactManager.ImpactType.METAL;
+            } else {
+                impactType = ProjectileImpactManager.ImpactType.GROUND;
+            }
+
             float3 position = projectileEvent.position;
             float3 normal = projectileEvent.normal;
-
-            ProjectileImpactManager.onImpact(position, normal);
+            ProjectileImpactManager.onImpact(impactType, position, normal);
 
             // TODO:
             // reduce HP of target if it has a HP object
