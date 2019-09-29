@@ -62,7 +62,7 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
     public void Execute(
             Entity entity, int index, 
             [ReadOnly] ref LocalToWorld transform,
-            ref Rotation rotation,
+            [ReadOnly] ref Rotation rotation,
             [ReadOnly] ref GunData gun,
             ref GunState state,
             [ReadOnly] ref HasTarget targetData) {
@@ -114,16 +114,23 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
 }
 
 public class TurretControlSystem : JobComponentSystem {
-    private EntityQuery queryGroup;
+    private EntityQuery rotationQueryGroup;
+    private EntityQuery firingQueryGroup;
     private EndSimulationEntityCommandBufferSystem bufferSystem;
     private NativeArray<Unity.Mathematics.Random> randomSources;
     private Unity.Mathematics.Random rnd;
 
     protected override void OnCreate() {
         // Cached access to a set of ComponentData based on a specific query
-        queryGroup = GetEntityQuery(
+        rotationQueryGroup = GetEntityQuery(
             ComponentType.ReadOnly<LocalToWorld>(),
             typeof(Rotation),
+            ComponentType.ReadOnly<GunData>(),
+            ComponentType.ReadOnly<HasTarget>(),
+            typeof(GunState));
+        firingQueryGroup = GetEntityQuery(
+            ComponentType.ReadOnly<LocalToWorld>(),
+            ComponentType.ReadOnly<Rotation>(),
             ComponentType.ReadOnly<GunData>(),
             ComponentType.ReadOnly<HasTarget>(),
             typeof(GunState));
@@ -138,13 +145,13 @@ public class TurretControlSystem : JobComponentSystem {
         }
         var rotateJob = new RotateTurretJob() {
             deltaTime = Time.deltaTime,
-        }.Schedule(queryGroup, inputDependencies);
+        }.Schedule(rotationQueryGroup, inputDependencies);
 
         var fireJob = new FireTurretJob() {
             commandBuffer = bufferSystem.CreateCommandBuffer().ToConcurrent(),
             deltaTime = Time.deltaTime,
             randomSources = randomSources,
-        }.Schedule(queryGroup, rotateJob);
+        }.Schedule(firingQueryGroup, rotateJob);
 
         bufferSystem.AddJobHandleForProducer(fireJob);
         return fireJob;
