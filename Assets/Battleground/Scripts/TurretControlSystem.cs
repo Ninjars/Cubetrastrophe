@@ -19,18 +19,15 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
     [NativeSetThreadIndex]
     private int threadIndex;
 
-    private float getRotationDelta(float targetAngle, float currentAngle, float maxAngle) {
-        float deltaAngle = targetAngle - currentAngle;
-        if (deltaAngle > math.PI) deltaAngle -= 2 * math.PI;
-        if (deltaAngle < -math.PI) deltaAngle += 2 * math.PI;
-        if (math.abs(deltaAngle) > maxAngle) {
-            if (deltaAngle < 0) {
-                return -maxAngle;
+    private float clipRotation(float value, float maxValue) {
+        if (math.abs(value) > maxValue) {
+            if (value < 0) {
+                return -maxValue;
             } else {
-                return maxAngle;
+                return maxValue;
             }
         } else {
-            return deltaAngle;
+            return value;
         }
     }
 
@@ -41,23 +38,19 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
             [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
         var targetFacingQuaternion = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, gun.localRotationAxis);
-        var targetAxisRotations = MathUtils.axisAngles(targetFacingQuaternion);//new float3(math.radians(0), math.radians(-175), math.radians(10));
-        // targetAxisRotations = new float3(targetAxisRotations.x, targetAxisRotations.y, 0);
-        var deltaX = getRotationDelta(targetAxisRotations.x, state.currentPitch, gun.pitchSpeed * deltaTime);
-        var deltaY = getRotationDelta(targetAxisRotations.y, state.currentRotation, gun.rotationSpeed * deltaTime);
+        var deltaRotation = math.normalizesafe(math.mul(math.inverse(rotation.Value), targetFacingQuaternion));
+        var targetAxisRotations = MathUtils.axisAngles(deltaRotation);
 
+        var deltaX = clipRotation(targetAxisRotations.x, gun.pitchSpeed * deltaTime);
+        var deltaY = clipRotation(targetAxisRotations.y, gun.rotationSpeed * deltaTime);
+
+        var rotationAxis = MathUtils.axisAngles(rotation.Value);
         state.currentPitch = math.min(gun.maximumPitchDelta, math.max(-gun.maximumPitchDelta, state.currentPitch + deltaX));
         state.currentRotation = state.currentRotation + deltaY;
 
         var localRotation = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
         var worldRotation = math.mul(gun.neutralRotation, localRotation);
         rotation.Value = worldRotation;
-
-        Debug.Log(
-        $"localRotation {math.degrees(state.currentPitch)}, {math.degrees(state.currentRotation)}, 0"
-        + $"\ntarget axis rotations {math.degrees(targetAxisRotations.x)}, {math.degrees(targetAxisRotations.y)}, {math.degrees(targetAxisRotations.z)}"
-        + $"\ntarget pos {targetData.targetPosition}, transform pos {transform.Position}, delta {targetData.targetPosition - transform.Position}"
-        );
 
         if (state.shotsRemaining > 0) {
             if (state.currentFireInterval > 0) {
