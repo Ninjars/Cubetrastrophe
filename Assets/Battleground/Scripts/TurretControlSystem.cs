@@ -35,6 +35,7 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
         var targetFacingQuaternion = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, gun.localRotationAxis);
         var deltaRotation = math.normalizesafe(math.mul(math.inverse(rotation.Value), targetFacingQuaternion));
         var targetAxisRotations = MathUtils.axisAngles(deltaRotation);
+        state.targetAngle = targetAxisRotations.y;
 
         var deltaX = clipRotation(targetAxisRotations.x, gun.pitchSpeed * deltaTime);
         var deltaY = clipRotation(targetAxisRotations.y, gun.rotationSpeed * deltaTime);
@@ -65,6 +66,9 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
             [ReadOnly] ref GunData gun,
             ref GunState state,
             [ReadOnly] ref HasTarget targetData) {
+
+        if (math.abs(state.targetAngle) > gun.shotDeviation / 2f) { return; }
+
         if (state.shotsRemaining > 0) {
             if (state.currentFireInterval > 0) {
                 state.currentFireInterval = state.currentFireInterval - deltaTime;
