@@ -1,26 +1,37 @@
-
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
-using static ProjectileImpactManager;
 
 public class ProjectileImpactManager : MonoBehaviour {
 
-    public struct ProjectileImpactEvent {
-        public CollisionEvent collisionEvent;
-        public Entity projectile;
-        public Entity other;
-    }
+    struct ProjectileMiss : IComponentData {}
 
-    public static NativeQueue<ProjectileImpactEvent> queuedProjectileEvents = new NativeQueue<ProjectileImpactEvent>(Allocator.Persistent);
+    public static NativeQueue<ProjectileImpactEvent> queuedProjectileEvents;
+
+    public GameObject projectileImpactPrefab;
+
+    public static GameObject dustImpactPrefab { get; private set; }
 
     private void Awake() {
         queuedProjectileEvents = new NativeQueue<ProjectileImpactEvent>(Allocator.Persistent);
+        dustImpactPrefab = projectileImpactPrefab;
     }
 
+    public struct ProjectileImpactEvent {
+        public Entity projectile;
+        public Entity other;
+        public float3 normal;
+        public float3 position;
+    }
+
+    internal static void onImpact(float3 position, float3 normal) {
+        var effectInstance = GameObject.Instantiate(ProjectileImpactManager.dustImpactPrefab);
+        effectInstance.transform.position = new Vector3(position.x, position.y, position.z);
+        effectInstance.transform.rotation = Quaternion.LookRotation(normal);
+    }
 }
 
 [UpdateInGroup(typeof(LateSimulationSystemGroup))]
@@ -30,7 +41,7 @@ public class QueuedActionSystem : ComponentSystem {
         // EntityQuery entityQuery = GetEntityQuery(typeof(Zombie));
         // int entityCount = entityQuery.CalculateLength();
 
-        ProjectileImpactEvent projectileEvent;
+        ProjectileImpactManager.ProjectileImpactEvent projectileEvent;
         while (ProjectileImpactManager.queuedProjectileEvents.TryDequeue(out projectileEvent)) {
             var projectileEntity = projectileEvent.projectile;
 
@@ -40,8 +51,10 @@ public class QueuedActionSystem : ComponentSystem {
                 continue;
             }
 
-            float3 position = EntityManager.GetComponentData<Translation>(projectileEntity).Value;
-            float3 normal = projectileEvent.collisionEvent.Normal;
+            float3 position = projectileEvent.position;
+            float3 normal = projectileEvent.normal;
+
+            ProjectileImpactManager.onImpact(position, normal);
 
             // TODO:
             // reduce HP of target if it has a HP object

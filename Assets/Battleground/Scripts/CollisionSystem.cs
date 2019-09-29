@@ -8,6 +8,7 @@ using static ProjectileImpactManager;
 
 struct CollisionJob : ICollisionEventsJob {
     [ReadOnly] internal ComponentDataFromEntity<Projectile> projectiles;
+    [ReadOnly] public PhysicsWorld World;
     public NativeQueue<ProjectileImpactEvent>.ParallelWriter queuedActions;
 
     public void Execute(CollisionEvent ev) {
@@ -21,8 +22,10 @@ struct CollisionJob : ICollisionEventsJob {
     }
 
     private void enqueueCollision(CollisionEvent collision, Entity projectile, Entity other) {
+        var collisionDetails = collision.CalculateDetails(ref World);
         queuedActions.Enqueue(new ProjectileImpactEvent {
-            collisionEvent = collision,
+            normal = collision.Normal,
+            position = collisionDetails.AverageContactPointPosition,
             projectile = projectile,
             other = other
         });
@@ -45,6 +48,7 @@ public class CollisionSystem : JobComponentSystem {
         var job = new CollisionJob {
             projectiles = GetComponentDataFromEntity<Projectile>(true),
             queuedActions = ProjectileImpactManager.queuedProjectileEvents.AsParallelWriter(),
+            World = buildPhysicsWorldSystem.PhysicsWorld,
         }.Schedule(stepPhysicsWorld.Simulation, ref buildPhysicsWorldSystem.PhysicsWorld, inputDeps);
         job.Complete();
         return job;
