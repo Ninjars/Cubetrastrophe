@@ -10,14 +10,9 @@ using Unity.Transforms;
 using UnityEngine;
 
 // credit for aid with the quaternion -> axis angle maths https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm
-struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget, GunState> {
-    public EntityCommandBuffer commandBuffer;
+[BurstCompile]
+struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget, GunState> {
     public float deltaTime;
-    [DeallocateOnJobCompletion]
-    [NativeDisableParallelForRestriction]
-    public NativeArray<Unity.Mathematics.Random> randomSources;
-    [NativeSetThreadIndex]
-    private int threadIndex;
 
     private float clipRotation(float value, float maxValue) {
         if (math.abs(value) > maxValue) {
@@ -51,12 +46,30 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
         var localRotation = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
         var worldRotation = math.mul(gun.neutralRotation, localRotation);
         rotation.Value = worldRotation;
+    }
+}
 
+struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, GunState, HasTarget> {
+    public EntityCommandBuffer.Concurrent commandBuffer;
+    public float deltaTime;
+    [DeallocateOnJobCompletion]
+    [NativeDisableParallelForRestriction]
+    public NativeArray<Unity.Mathematics.Random> randomSources;
+    [NativeSetThreadIndex]
+    private int threadIndex;
+
+    public void Execute(
+            Entity entity, int index, 
+            [ReadOnly] ref LocalToWorld transform,
+            ref Rotation rotation,
+            [ReadOnly] ref GunData gun,
+            ref GunState state,
+            [ReadOnly] ref HasTarget targetData) {
         if (state.shotsRemaining > 0) {
             if (state.currentFireInterval > 0) {
                 state.currentFireInterval = state.currentFireInterval - deltaTime;
             } else {
-                fireProjectile(ref transform, ref rotation, ref gun, ref state);
+                fireProjectile(index, ref transform, ref rotation, ref gun, ref state);
             }
         } else {
             if (state.currentReloadInterval > 0) {
@@ -69,7 +82,7 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
         }
     }
 
-    private void fireProjectile(ref LocalToWorld transform, ref Rotation rotation, ref GunData gun, ref GunState state) {
+    private void fireProjectile(int index, ref LocalToWorld transform, ref Rotation rotation, ref GunData gun, ref GunState state) {
         state.shotsRemaining = state.shotsRemaining - 1;
 
         var rnd = randomSources[threadIndex];
@@ -77,10 +90,10 @@ struct UpdateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
         var yOffset = quaternion.AxisAngle(new float3(1, 0, 0), (rnd.NextFloat() * 2 - 1) * gun.shotDeviation);
         var bulletFacing = math.mul(math.mul(rotation.Value, xOffset), yOffset);
 
-        var instance = commandBuffer.Instantiate(gun.projectileEntity);
-        commandBuffer.SetComponent(instance, new Translation { Value = transform.Position + math.rotate(rotation.Value.value, gun.projectileOffset) });
-        commandBuffer.SetComponent(instance, new Rotation { Value = bulletFacing });
-        commandBuffer.SetComponent(instance, new PhysicsVelocity() {
+        var instance = commandBuffer.Instantiate(index, gun.projectileEntity);
+        commandBuffer.SetComponent(index, instance, new Translation { Value = transform.Position + math.rotate(rotation.Value.value, gun.projectileOffset) });
+        commandBuffer.SetComponent(index, instance, new Rotation { Value = bulletFacing });
+        commandBuffer.SetComponent(index, instance, new PhysicsVelocity() {
             Linear = math.mul(bulletFacing, new float3(0, 0, gun.projectileVelocity)),
             Angular = float3.zero
         });
@@ -119,12 +132,17 @@ public class TurretControlSystem : JobComponentSystem {
         for (int i = 0; i < randomSources.Length; i++) {
             randomSources[i] = new Unity.Mathematics.Random((uint) rnd.NextInt());
         }
-        var job = new UpdateTurretJob() {
-            commandBuffer = bufferSystem.CreateCommandBuffer(),
+        var rotateJob = new RotateTurretJob() {
+            deltaTime = Time.deltaTime,
+        }.Schedule(queryGroup, inputDependencies);
+
+        var fireJob = new FireTurretJob() {
+            commandBuffer = bufferSystem.CreateCommandBuffer().ToConcurrent(),
             deltaTime = Time.deltaTime,
             randomSources = randomSources,
-        }.ScheduleSingle(queryGroup, inputDependencies);
-        bufferSystem.AddJobHandleForProducer(job);
-        return job;
+        }.Schedule(queryGroup, rotateJob);
+
+        bufferSystem.AddJobHandleForProducer(fireJob);
+        return fireJob;
     }
 }
