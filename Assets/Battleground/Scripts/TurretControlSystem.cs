@@ -33,7 +33,7 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
             [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
         var targetFacingQuaternion = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, gun.localRotationAxis);
-        var deltaRotation = math.normalizesafe(math.mul(math.inverse(rotation.Value), targetFacingQuaternion));
+        var deltaRotation = math.mul(math.inverse(rotation.Value), targetFacingQuaternion);
         var targetAxisRotations = MathUtils.axisAngles(deltaRotation);
         state.targetAngle = targetAxisRotations.y;
 
@@ -42,7 +42,7 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
 
         var rotationAxis = MathUtils.axisAngles(rotation.Value);
         state.currentPitch = math.min(gun.maximumPitchDelta, math.max(-gun.maximumPitchDelta, state.currentPitch + deltaX));
-        state.currentRotation = state.currentRotation + deltaY;
+        state.currentRotation = (state.currentRotation + deltaY) % (math.PI * 2);
 
         var localRotation = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
         var worldRotation = math.mul(gun.neutralRotation, localRotation);
@@ -60,7 +60,7 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
     private int threadIndex;
 
     public void Execute(
-            Entity entity, int index, 
+            Entity entity, int index,
             [ReadOnly] ref LocalToWorld transform,
             [ReadOnly] ref Rotation rotation,
             [ReadOnly] ref GunData gun,

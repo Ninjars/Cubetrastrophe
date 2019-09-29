@@ -58,10 +58,6 @@ public class Turret : MonoBehaviour {
         });
         
         var axisAngles = MathUtils.axisAngles(transform.rotation);
-        Debug.Log(
-            $"neutralRotation {math.degrees(axisAngles.x)}, {math.degrees(axisAngles.y)}, {math.degrees(axisAngles.z)}"
-            + $"localRotationAxis {transform.up}"
-        );
         entityManager.AddComponentData(instance, new GunState {
             currentFireInterval = 0,
             currentReloadInterval = 0,
