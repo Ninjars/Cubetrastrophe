@@ -27,8 +27,6 @@ public class Turret : MonoBehaviour {
         );
 
         Entity projectileEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(projectilePrefab, World.Active);
-        entityManager.AddComponentData(projectileEntity, new Projectile { });
-
         Entity turretEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(turretPrefab, World.Active);
         entityManager.AddComponentData(turretEntity, new DefenderTag { });
 

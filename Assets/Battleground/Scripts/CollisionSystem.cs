@@ -4,20 +4,28 @@ using Unity.Jobs;
 using Unity.Physics;
 using Unity.Physics.Systems;
 using UnityEngine;
+using static ProjectileImpactManager;
 
 struct CollisionJob : ICollisionEventsJob {
-    public EntityCommandBuffer commandBuffer;
     [ReadOnly] internal ComponentDataFromEntity<Projectile> projectiles;
+    public NativeQueue<ProjectileImpactEvent>.ParallelWriter queuedActions;
 
     public void Execute(CollisionEvent ev) {
         Entity a = ev.Entities.EntityA;
         Entity b = ev.Entities.EntityB;
         if (projectiles.Exists(a)) {
-            commandBuffer.DestroyEntity(a);
+            enqueueCollision(ev, a, b);
+        } else if (projectiles.Exists(b)) {
+            enqueueCollision(ev, b, a);
         }
-        if (projectiles.Exists(b)) {
-            commandBuffer.DestroyEntity(b);
-        }
+    }
+
+    private void enqueueCollision(CollisionEvent collision, Entity projectile, Entity other) {
+        queuedActions.Enqueue(new ProjectileImpactEvent {
+            collisionEvent = collision,
+            projectile = projectile,
+            other = other
+        });
     }
 }
 
@@ -27,21 +35,17 @@ public class CollisionSystem : JobComponentSystem {
 
     BuildPhysicsWorld buildPhysicsWorldSystem;
     StepPhysicsWorld stepPhysicsWorld;
-    EndSimulationEntityCommandBufferSystem bufferSystem;
 
     protected override void OnCreate() {
         buildPhysicsWorldSystem = World.GetOrCreateSystem<BuildPhysicsWorld>();
         stepPhysicsWorld = World.GetOrCreateSystem<StepPhysicsWorld>();
-        bufferSystem = World.Active.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDeps) {
         var job = new CollisionJob {
-            commandBuffer = bufferSystem.CreateCommandBuffer(),
             projectiles = GetComponentDataFromEntity<Projectile>(true),
+            queuedActions = ProjectileImpactManager.queuedProjectileEvents.AsParallelWriter(),
         }.Schedule(stepPhysicsWorld.Simulation, ref buildPhysicsWorldSystem.PhysicsWorld, inputDeps);
-
-        bufferSystem.AddJobHandleForProducer(inputDeps);
         job.Complete();
         return job;
     }

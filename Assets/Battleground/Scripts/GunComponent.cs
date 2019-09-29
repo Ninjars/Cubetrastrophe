@@ -29,4 +29,6 @@ public struct GunState : IComponentData {
     public float targetAngle;
 }
 
-public struct Projectile : IComponentData {}
+public struct Projectile : IComponentData {
+    public Entity firingEntity;
+}

@@ -73,7 +73,7 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
             if (state.currentFireInterval > 0) {
                 state.currentFireInterval = state.currentFireInterval - deltaTime;
             } else {
-                fireProjectile(index, ref transform, ref rotation, ref gun, ref state);
+                fireProjectile(entity, index, ref transform, ref rotation, ref gun, ref state);
             }
         } else {
             if (state.currentReloadInterval > 0) {
@@ -86,7 +86,7 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
         }
     }
 
-    private void fireProjectile(int index, ref LocalToWorld transform, ref Rotation rotation, ref GunData gun, ref GunState state) {
+    private void fireProjectile(Entity entity, int index, ref LocalToWorld transform, ref Rotation rotation, ref GunData gun, ref GunState state) {
         state.shotsRemaining = state.shotsRemaining - 1;
 
         var rnd = randomSources[threadIndex];
@@ -101,6 +101,7 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
             Linear = math.mul(bulletFacing, new float3(0, 0, gun.projectileVelocity)),
             Angular = float3.zero
         });
+        commandBuffer.AddComponent(index, instance, new Projectile { firingEntity = entity });
 
         if (state.shotsRemaining <= 0) {
             state.currentFireInterval = 0;
