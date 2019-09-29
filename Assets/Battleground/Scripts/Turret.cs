@@ -11,8 +11,11 @@ public class Turret : MonoBehaviour {
     public GameObject basePrefab;
     public GameObject turretPrefab;
     public GameObject projectilePrefab;
+    public GameObject muzzleEffectPrefab;
+    public static GameObject muzzleEffectPrefabRef { get; private set; }
 
     void Start() {
+        muzzleEffectPrefabRef = muzzleEffectPrefab;
         var entityManager = World.Active.EntityManager;
 
         var baseEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(basePrefab, World.Active);
@@ -61,5 +64,14 @@ public class Turret : MonoBehaviour {
             currentReloadInterval = 0,
             shotsRemaining = 4,
         });
+    }
+
+    internal static void onShotFired(float3 position, quaternion rotationQuaternion) {
+        if (math.isnan(position.x)) return;
+        var rotation = rotationQuaternion.value;
+        if (math.isnan(rotation.x)) return;
+        var effectInstance = GameObject.Instantiate(muzzleEffectPrefabRef);
+        effectInstance.transform.position = new Vector3(position.x, position.y, position.z);
+        effectInstance.transform.rotation = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
     }
 }

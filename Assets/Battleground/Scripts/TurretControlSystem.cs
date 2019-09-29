@@ -56,6 +56,7 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
     [DeallocateOnJobCompletion]
     [NativeDisableParallelForRestriction]
     public NativeArray<Unity.Mathematics.Random> randomSources;
+    public EntityArchetype muzzleFlashEntity;
     [NativeSetThreadIndex]
     private int threadIndex;
 
@@ -95,13 +96,20 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
         var bulletFacing = math.mul(math.mul(rotation.Value, xOffset), yOffset);
 
         var instance = commandBuffer.Instantiate(index, gun.projectileEntity);
-        commandBuffer.SetComponent(index, instance, new Translation { Value = transform.Position + math.rotate(rotation.Value.value, gun.projectileOffset) });
+        var position = transform.Position + math.rotate(rotation.Value.value, gun.projectileOffset);
+        commandBuffer.SetComponent(index, instance, new Translation { Value = position });
         commandBuffer.SetComponent(index, instance, new Rotation { Value = bulletFacing });
         commandBuffer.SetComponent(index, instance, new PhysicsVelocity() {
             Linear = math.mul(bulletFacing, new float3(0, 0, gun.projectileVelocity)),
             Angular = float3.zero
         });
         commandBuffer.AddComponent(index, instance, new Projectile { firingEntity = entity });
+
+        var muzzleFlash = commandBuffer.CreateEntity(index, muzzleFlashEntity);
+        commandBuffer.SetComponent(index, muzzleFlash, new MuzzleFlashSystem.MuzzleFlashComponent {
+            position = position,
+            rotation = bulletFacing,
+        });
 
         if (state.shotsRemaining <= 0) {
             state.currentFireInterval = 0;
@@ -120,6 +128,7 @@ public class TurretControlSystem : JobComponentSystem {
     private EndSimulationEntityCommandBufferSystem bufferSystem;
     private NativeArray<Unity.Mathematics.Random> randomSources;
     private Unity.Mathematics.Random rnd;
+    private EntityArchetype muzzleFlashEntity;
 
     protected override void OnCreate() {
         // Cached access to a set of ComponentData based on a specific query
@@ -137,18 +146,22 @@ public class TurretControlSystem : JobComponentSystem {
             typeof(GunState));
         bufferSystem = World.Active.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
         rnd = new Unity.Mathematics.Random((uint)UnityEngine.Random.Range(int.MinValue, int.MaxValue));
+        muzzleFlashEntity = World.Active.EntityManager.CreateArchetype(
+            typeof(MuzzleFlashSystem.MuzzleFlashComponent)
+        );
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDependencies) {
         randomSources = new NativeArray<Unity.Mathematics.Random>(System.Environment.ProcessorCount + 1, Allocator.TempJob);
         for (int i = 0; i < randomSources.Length; i++) {
-            randomSources[i] = new Unity.Mathematics.Random((uint) rnd.NextInt());
+            randomSources[i] = new Unity.Mathematics.Random((uint)rnd.NextInt());
         }
         var rotateJob = new RotateTurretJob() {
             deltaTime = Time.deltaTime,
         }.Schedule(rotationQueryGroup, inputDependencies);
 
         var fireJob = new FireTurretJob() {
+            muzzleFlashEntity = muzzleFlashEntity,
             commandBuffer = bufferSystem.CreateCommandBuffer().ToConcurrent(),
             deltaTime = Time.deltaTime,
             randomSources = randomSources,
@@ -156,5 +169,25 @@ public class TurretControlSystem : JobComponentSystem {
 
         bufferSystem.AddJobHandleForProducer(fireJob);
         return fireJob;
+    }
+}
+
+public class MuzzleFlashSystem : ComponentSystem {
+    private EntityQuery query;
+
+    protected override void OnCreate() {
+        query = GetEntityQuery(ComponentType.ReadOnly<MuzzleFlashComponent>());
+    }
+
+    protected override void OnUpdate() {
+        Entities.ForEach((Entity entity, ref MuzzleFlashComponent muzzleFlash) => {
+            Turret.onShotFired(muzzleFlash.position, muzzleFlash.rotation);
+            PostUpdateCommands.DestroyEntity(entity);
+        });
+    }
+
+    public struct MuzzleFlashComponent : IComponentData {
+        public float3 position;
+        public quaternion rotation;
     }
 }

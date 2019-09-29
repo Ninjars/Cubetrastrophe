@@ -49,3 +49,5 @@ MonoBehaviour:
     type: 3}
   projectilePrefab: {fileID: 1439515347430494525, guid: 92c34d61350ad429aa422be34eb5f6d2,
     type: 3}
+  muzzleEffectPrefab: {fileID: 222761739635320889, guid: c43b424953f3fe749985dbe9f27284eb,
+    type: 3}

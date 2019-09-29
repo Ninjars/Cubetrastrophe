@@ -672,7 +672,7 @@ PrefabInstance:
     - target: {fileID: 1146207728194174278, guid: 1783d49340d7d3246bdc83eafbc5ac64,
         type: 3}
       propertyPath: m_Name
-      value: Effects Manager
+      value: Projectile Effects Manager
       objectReference: {fileID: 0}
     - target: {fileID: 1146207728194174280, guid: 1783d49340d7d3246bdc83eafbc5ac64,
         type: 3}
