@@ -58,7 +58,6 @@ public class Turret : MonoBehaviour {
             localPitchAxis = transform.right,
         });
         
-        var axisAngles = MathUtils.axisAngles(transform.rotation);
         entityManager.AddComponentData(instance, new GunState {
             currentFireInterval = 0,
             currentReloadInterval = 0,

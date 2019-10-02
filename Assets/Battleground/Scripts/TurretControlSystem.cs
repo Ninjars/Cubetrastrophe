@@ -10,8 +10,9 @@ using Unity.Transforms;
 using UnityEngine;
 
 // credit for aid with the quaternion -> axis angle maths https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm
-[BurstCompile]
+// [BurstCompile]
 struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget, GunState> {
+    private static float HALF_PI = math.PI / 2f;
     public float deltaTime;
 
     private float clipRotation(float value, float maxValue) {
@@ -32,21 +33,57 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
             [ReadOnly] ref GunData gun,
             [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
-        var targetFacingQuaternion = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, gun.localRotationAxis);
-        var deltaRotation = math.mul(math.inverse(rotation.Value), targetFacingQuaternion);
-        var targetAxisRotations = MathUtils.axisAngles(deltaRotation);
-        state.targetAngle = targetAxisRotations.y;
+        var targetVector = math.normalize(targetData.targetPosition - transform.Position);
+        float3 localTargetVector = math.mul(rotation.Value, targetVector);
+        float3 localForwardVector = math.mul(rotation.Value, transform.Forward);
+        var angleAboutY = math.atan2(localTargetVector.x, localTargetVector.z) - math.atan2(localForwardVector.x, localForwardVector.z);
+        if (angleAboutY > math.PI) {
+            angleAboutY -= 2 * math.PI;
+        } else if (angleAboutY < -math.PI) {
+            angleAboutY += 2 * math.PI;
+        }
+        var yThisFrame = deltaTime * gun.rotationSpeed;
+        angleAboutY = math.clamp(angleAboutY, -yThisFrame, yThisFrame);
 
-        var deltaX = clipRotation(targetAxisRotations.x, gun.pitchSpeed * deltaTime);
-        var deltaY = clipRotation(targetAxisRotations.y, gun.rotationSpeed * deltaTime);
+        rotation.Value = math.mul(rotation.Value, quaternion.RotateY(angleAboutY));
 
-        var rotationAxis = MathUtils.axisAngles(rotation.Value);
-        state.currentPitch = math.min(gun.maximumPitchDelta, math.max(-gun.maximumPitchDelta, state.currentPitch + deltaX));
-        state.currentRotation = (state.currentRotation + deltaY) % (math.PI * 2);
+        // localTargetVector = math.mul(rotation.Value, targetVector);
+        // localForwardVector = math.mul(rotation.Value, transform.Forward);
+        var angleAboutX = math.atan2(localTargetVector.y, localTargetVector.z) - math.atan2(localForwardVector.y, localForwardVector.z);
+        // // var angleAboutX = 0f;
+        // // if (localTargetVector.z - localForwardVector.z > 0) {
+        // //     if (angleAboutX > math.PI) {
+        // //         angleAboutX -= 2 * math.PI;
+        // //     } else if (angleAboutX < -math.PI) {
+        // //         angleAboutX += 2 * math.PI;
+        // //     }
+        // // }
+        // rotation.Value = math.mul(rotation.Value, quaternion.RotateX(angleAboutX));
 
-        var localRotation = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
-        var worldRotation = math.mul(gun.neutralRotation, localRotation);
-        rotation.Value = worldRotation;
+        // var applyRotation = math.mul(quaternion.EulerXYZ(angleAboutX, angleAboutY, 0), rotation.Value);
+        // rotation.Value = applyRotation;
+
+        Debug.Log(""
+        // + $" dy {localTargetVector.y - localForwardVector.y} dz {localTargetVector.z - localForwardVector.z}"
+        + $" rotate {math.degrees(angleAboutY)}"
+        + $" pitch {math.degrees(angleAboutX)}"
+        );
+
+        // var targetFacingQuaternion = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, gun.localRotationAxis);
+        // var deltaRotation = math.mul(math.inverse(rotation.Value), targetFacingQuaternion);
+        // var targetAxisRotations = MathUtils.axisAngles(deltaRotation);
+        // state.targetAngle = targetAxisRotations.y;
+
+        // var deltaX = clipRotation(targetAxisRotations.x, gun.pitchSpeed * deltaTime);
+        // var deltaY = clipRotation(targetAxisRotations.y, gun.rotationSpeed * deltaTime);
+
+        // var rotationAxis = MathUtils.axisAngles(rotation.Value);
+        // state.currentPitch = math.min(gun.maximumPitchDelta, math.max(-gun.maximumPitchDelta, state.currentPitch + deltaX));
+        // state.currentRotation = (state.currentRotation + deltaY) % (math.PI * 2);
+
+        // var localRotation = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
+        // var worldRotation = math.mul(gun.neutralRotation, localRotation);
+        // rotation.Value = worldRotation;
     }
 }
 
