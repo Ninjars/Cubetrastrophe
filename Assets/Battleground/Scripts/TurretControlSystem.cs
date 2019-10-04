@@ -43,25 +43,14 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
             angleAboutY += 2 * math.PI;
         }
         var yThisFrame = deltaTime * gun.rotationSpeed;
-        angleAboutY = math.clamp(angleAboutY, -yThisFrame, yThisFrame);
+        state.currentRotation += math.clamp(angleAboutY, -yThisFrame, yThisFrame);
 
-        rotation.Value = math.mul(rotation.Value, quaternion.RotateY(angleAboutY));
-
-        // localTargetVector = math.mul(rotation.Value, targetVector);
-        // localForwardVector = math.mul(rotation.Value, transform.Forward);
-        var angleAboutX = math.atan2(localTargetVector.y, localTargetVector.z) - math.atan2(localForwardVector.y, localForwardVector.z);
-        // // var angleAboutX = 0f;
-        // // if (localTargetVector.z - localForwardVector.z > 0) {
-        // //     if (angleAboutX > math.PI) {
-        // //         angleAboutX -= 2 * math.PI;
-        // //     } else if (angleAboutX < -math.PI) {
-        // //         angleAboutX += 2 * math.PI;
-        // //     }
-        // // }
-        // rotation.Value = math.mul(rotation.Value, quaternion.RotateX(angleAboutX));
-
-        // var applyRotation = math.mul(quaternion.EulerXYZ(angleAboutX, angleAboutY, 0), rotation.Value);
-        // rotation.Value = applyRotation;
+        var deltaForwardOffset = math.sqrt(localForwardVector.z * localForwardVector.z + localForwardVector.x * localForwardVector.x);
+        var deltaTargetOffset = math.sqrt(localTargetVector.z * localTargetVector.z + localTargetVector.x * localTargetVector.x);
+        var angleAboutX = math.atan2(localTargetVector.y, deltaTargetOffset) - math.atan2(localForwardVector.y, deltaForwardOffset);
+        var xThisFrame = deltaTime * gun.pitchSpeed;
+        angleAboutX = math.clamp(angleAboutX, -xThisFrame, xThisFrame);
+        state.currentPitch = math.clamp(state.currentPitch - angleAboutX, -gun.maximumPitchDelta, gun.maximumPitchDelta);
 
         Debug.Log(""
         // + $" dy {localTargetVector.y - localForwardVector.y} dz {localTargetVector.z - localForwardVector.z}"
@@ -69,21 +58,9 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
         + $" pitch {math.degrees(angleAboutX)}"
         );
 
-        // var targetFacingQuaternion = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, gun.localRotationAxis);
-        // var deltaRotation = math.mul(math.inverse(rotation.Value), targetFacingQuaternion);
-        // var targetAxisRotations = MathUtils.axisAngles(deltaRotation);
-        // state.targetAngle = targetAxisRotations.y;
-
-        // var deltaX = clipRotation(targetAxisRotations.x, gun.pitchSpeed * deltaTime);
-        // var deltaY = clipRotation(targetAxisRotations.y, gun.rotationSpeed * deltaTime);
-
-        // var rotationAxis = MathUtils.axisAngles(rotation.Value);
-        // state.currentPitch = math.min(gun.maximumPitchDelta, math.max(-gun.maximumPitchDelta, state.currentPitch + deltaX));
-        // state.currentRotation = (state.currentRotation + deltaY) % (math.PI * 2);
-
-        // var localRotation = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
-        // var worldRotation = math.mul(gun.neutralRotation, localRotation);
-        // rotation.Value = worldRotation;
+        var localRotation = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
+        var worldRotation = math.mul(gun.neutralRotation, localRotation);
+        rotation.Value = worldRotation;
     }
 }
 
