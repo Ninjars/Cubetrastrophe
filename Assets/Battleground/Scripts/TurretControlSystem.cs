@@ -10,9 +10,9 @@ using Unity.Transforms;
 using UnityEngine;
 
 // credit for aid with the quaternion -> axis angle maths https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm
-// [BurstCompile]
+[BurstCompile]
 struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget, GunState> {
-    private static float HALF_PI = math.PI / 2f;
+    private readonly static float PITCH_UPDATE_ANGLE = math.PI / 4f;
     public float deltaTime;
 
     private float clipRotation(float value, float maxValue) {
@@ -42,21 +42,19 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
         } else if (angleAboutY < -math.PI) {
             angleAboutY += 2 * math.PI;
         }
+        var isLargeRotationAway = math.abs(angleAboutY) > PITCH_UPDATE_ANGLE;
         var yThisFrame = deltaTime * gun.rotationSpeed;
         state.currentRotation += math.clamp(angleAboutY, -yThisFrame, yThisFrame);
 
         var deltaForwardOffset = math.sqrt(localForwardVector.z * localForwardVector.z + localForwardVector.x * localForwardVector.x);
         var deltaTargetOffset = math.sqrt(localTargetVector.z * localTargetVector.z + localTargetVector.x * localTargetVector.x);
         var angleAboutX = math.atan2(localTargetVector.y, deltaTargetOffset) - math.atan2(localForwardVector.y, deltaForwardOffset);
+        if (isLargeRotationAway) {
+            angleAboutX = 0;
+        }
         var xThisFrame = deltaTime * gun.pitchSpeed;
         angleAboutX = math.clamp(angleAboutX, -xThisFrame, xThisFrame);
         state.currentPitch = math.clamp(state.currentPitch - angleAboutX, -gun.maximumPitchDelta, gun.maximumPitchDelta);
-
-        Debug.Log(""
-        // + $" dy {localTargetVector.y - localForwardVector.y} dz {localTargetVector.z - localForwardVector.z}"
-        + $" rotate {math.degrees(angleAboutY)}"
-        + $" pitch {math.degrees(angleAboutX)}"
-        );
 
         var localRotation = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
         var worldRotation = math.mul(gun.neutralRotation, localRotation);
