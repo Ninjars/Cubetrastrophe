@@ -54,8 +54,6 @@ public class Turret : MonoBehaviour {
             rotationSpeed = 1f,
             pitchSpeed = 5f,
             neutralRotation = transform.rotation,
-            localRotationAxis = transform.up,
-            localPitchAxis = transform.right,
         });
         
         entityManager.AddComponentData(instance, new GunState {

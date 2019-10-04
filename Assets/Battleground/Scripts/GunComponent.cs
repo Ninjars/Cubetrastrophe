@@ -16,8 +16,6 @@ public struct GunData : IComponentData {
     public float rotationSpeed;
     public float pitchSpeed;
     public quaternion neutralRotation;
-    public float3 localRotationAxis;
-    internal float3 localPitchAxis;
 }
 
 public struct GunState : IComponentData {
@@ -26,7 +24,8 @@ public struct GunState : IComponentData {
     public int shotsRemaining;
     public float currentRotation;
     public float currentPitch;
-    public float targetAngle;
+    public float targetRotation;
+    public float targetPitch;
 }
 
 public struct Projectile : IComponentData {

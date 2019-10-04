@@ -45,10 +45,12 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
         var isLargeRotationAway = math.abs(angleAboutY) > PITCH_UPDATE_ANGLE;
         var yThisFrame = deltaTime * gun.rotationSpeed;
         state.currentRotation += math.clamp(angleAboutY, -yThisFrame, yThisFrame);
+        state.targetRotation = angleAboutY;
 
         var deltaForwardOffset = math.sqrt(localForwardVector.z * localForwardVector.z + localForwardVector.x * localForwardVector.x);
         var deltaTargetOffset = math.sqrt(localTargetVector.z * localTargetVector.z + localTargetVector.x * localTargetVector.x);
         var angleAboutX = math.atan2(localTargetVector.y, deltaTargetOffset) - math.atan2(localForwardVector.y, deltaForwardOffset);
+        state.targetPitch = angleAboutX;
         if (isLargeRotationAway) {
             angleAboutX = 0;
         }
@@ -80,7 +82,8 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
             ref GunState state,
             [ReadOnly] ref HasTarget targetData) {
 
-        if (math.abs(state.targetAngle) > gun.shotDeviation / 2f) { return; }
+        if (math.abs(state.targetRotation) > gun.shotDeviation / 2f) { return; }
+        if (math.abs(state.targetPitch) > gun.shotDeviation / 2f) { return; }
 
         if (state.shotsRemaining > 0) {
             if (state.currentFireInterval > 0) {
