@@ -13,6 +13,8 @@ using UnityEngine;
 [BurstCompile]
 struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget, GunState> {
     private readonly static float PITCH_UPDATE_ANGLE = math.PI / 4f;
+    private readonly static float HALF_PI = math.PI / 2f;
+    private readonly static float DOUBLE_PI = math.PI * 2f;
     public float deltaTime;
 
     private float clipRotation(float value, float maxValue) {
@@ -33,34 +35,39 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
             [ReadOnly] ref GunData gun,
             [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
+
         var targetVector = math.normalize(targetData.targetPosition - transform.Position);
-        float3 localTargetVector = math.mul(rotation.Value, targetVector);
-        float3 localForwardVector = math.mul(rotation.Value, transform.Forward);
-        var angleAboutY = math.atan2(localTargetVector.x, localTargetVector.z) - math.atan2(localForwardVector.x, localForwardVector.z);
-        if (angleAboutY > math.PI) {
-            angleAboutY -= 2 * math.PI;
-        } else if (angleAboutY < -math.PI) {
-            angleAboutY += 2 * math.PI;
-        }
-        var isLargeRotationAway = math.abs(angleAboutY) > PITCH_UPDATE_ANGLE;
-        var yThisFrame = deltaTime * gun.rotationSpeed;
-        state.currentRotation += math.clamp(angleAboutY, -yThisFrame, yThisFrame);
-        state.targetRotation = angleAboutY;
+        // rotate relative vector into local space
+        targetVector = math.mul(math.inverse(gun.neutralRotation), targetVector);
 
-        var deltaForwardOffset = math.sqrt(localForwardVector.z * localForwardVector.z + localForwardVector.x * localForwardVector.x);
-        var deltaTargetOffset = math.sqrt(localTargetVector.z * localTargetVector.z + localTargetVector.x * localTargetVector.x);
-        var angleAboutX = math.atan2(localTargetVector.y, deltaTargetOffset) - math.atan2(localForwardVector.y, deltaForwardOffset);
-        state.targetPitch = angleAboutX;
-        if (isLargeRotationAway) {
-            angleAboutX = 0;
+        // rotation
+        var targetRotation = math.atan2(targetVector.x, targetVector.z);
+        var rotThisFrame = deltaTime * gun.rotationSpeed;
+        var deltaRotation = targetRotation - state.currentRotation;
+        if (deltaRotation > math.PI) {
+            deltaRotation -= 2 * math.PI;
+        } else if (deltaRotation < -math.PI) {
+            deltaRotation += 2 * math.PI;
         }
-        var xThisFrame = deltaTime * gun.pitchSpeed;
-        angleAboutX = math.clamp(angleAboutX, -xThisFrame, xThisFrame);
-        state.currentPitch = math.clamp(state.currentPitch - angleAboutX, -gun.maximumPitchDelta, gun.maximumPitchDelta);
+        state.currentRotation += math.clamp(deltaRotation, -rotThisFrame, rotThisFrame);
 
-        var localRotation = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
+        // pitch
+        var horizontalLength = math.sqrt(targetVector.x * targetVector.x + targetVector.z * targetVector.z);
+        var targetPitch = (math.atan(horizontalLength / targetVector.y) + DOUBLE_PI) % (math.PI);
+        var pitchThisFrame = deltaTime * gun.pitchSpeed;
+        
+        var deltaPitch = (targetPitch - state.currentPitch);
+        var deltaPitchClamped = math.clamp(deltaPitch, -pitchThisFrame, pitchThisFrame);
+        state.currentPitch = math.clamp(state.currentPitch + deltaPitchClamped, HALF_PI - gun.maximumPitchDelta, HALF_PI + gun.maximumPitchDelta);
+
+        // have to adjust current pitch by 90 degrees because polar coords have 0 as being straight upwards rather than forwards, which is what unity expects
+        var localRotation = quaternion.EulerXYZ(state.currentPitch - HALF_PI, state.currentRotation, 0);
         var worldRotation = math.mul(gun.neutralRotation, localRotation);
         rotation.Value = worldRotation;
+
+        // used for deciding whether to shoot
+        state.targetRotationDelta = deltaRotation;
+        state.targetPitchDelta = deltaPitch;
     }
 }
 
@@ -82,8 +89,8 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
             ref GunState state,
             [ReadOnly] ref HasTarget targetData) {
 
-        if (math.abs(state.targetRotation) > gun.shotDeviation / 2f) { return; }
-        if (math.abs(state.targetPitch) > gun.shotDeviation / 2f) { return; }
+        if (math.abs(state.targetRotationDelta) > gun.shotDeviation) { return; }
+        if (math.abs(state.targetPitchDelta) > gun.shotDeviation) { return; }
 
         if (state.shotsRemaining > 0) {
             if (state.currentFireInterval > 0) {

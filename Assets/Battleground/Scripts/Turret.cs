@@ -60,6 +60,8 @@ public class Turret : MonoBehaviour {
             currentFireInterval = 0,
             currentReloadInterval = 0,
             shotsRemaining = 4,
+            currentPitch = math.PI/2f,
+            targetPitchDelta = math.PI/2f,
         });
     }
 
