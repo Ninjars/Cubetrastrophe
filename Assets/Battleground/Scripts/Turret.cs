@@ -54,15 +54,14 @@ public class Turret : MonoBehaviour {
             rotationSpeed = 1f,
             pitchSpeed = 5f,
             neutralRotation = transform.rotation,
-            localRotationAxis = transform.up,
-            localPitchAxis = transform.right,
         });
         
-        var axisAngles = MathUtils.axisAngles(transform.rotation);
         entityManager.AddComponentData(instance, new GunState {
             currentFireInterval = 0,
             currentReloadInterval = 0,
             shotsRemaining = 4,
+            currentPitch = math.PI/2f,
+            targetPitchDelta = math.PI/2f,
         });
     }
 

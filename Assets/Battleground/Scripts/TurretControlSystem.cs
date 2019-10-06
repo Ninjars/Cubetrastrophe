@@ -12,6 +12,9 @@ using UnityEngine;
 // credit for aid with the quaternion -> axis angle maths https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm
 [BurstCompile]
 struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget, GunState> {
+    private readonly static float PITCH_UPDATE_ANGLE = math.PI / 4f;
+    private readonly static float HALF_PI = math.PI / 2f;
+    private readonly static float DOUBLE_PI = math.PI * 2f;
     public float deltaTime;
 
     private float clipRotation(float value, float maxValue) {
@@ -32,21 +35,39 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
             [ReadOnly] ref GunData gun,
             [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
-        var targetFacingQuaternion = quaternion.LookRotationSafe(targetData.targetPosition - transform.Position, gun.localRotationAxis);
-        var deltaRotation = math.mul(math.inverse(rotation.Value), targetFacingQuaternion);
-        var targetAxisRotations = MathUtils.axisAngles(deltaRotation);
-        state.targetAngle = targetAxisRotations.y;
 
-        var deltaX = clipRotation(targetAxisRotations.x, gun.pitchSpeed * deltaTime);
-        var deltaY = clipRotation(targetAxisRotations.y, gun.rotationSpeed * deltaTime);
+        var targetVector = math.normalize(targetData.targetPosition - transform.Position);
+        // rotate relative vector into local space
+        targetVector = math.mul(math.inverse(gun.neutralRotation), targetVector);
 
-        var rotationAxis = MathUtils.axisAngles(rotation.Value);
-        state.currentPitch = math.min(gun.maximumPitchDelta, math.max(-gun.maximumPitchDelta, state.currentPitch + deltaX));
-        state.currentRotation = (state.currentRotation + deltaY) % (math.PI * 2);
+        // rotation
+        var targetRotation = math.atan2(targetVector.x, targetVector.z);
+        var rotThisFrame = deltaTime * gun.rotationSpeed;
+        var deltaRotation = targetRotation - state.currentRotation;
+        if (deltaRotation > math.PI) {
+            deltaRotation -= 2 * math.PI;
+        } else if (deltaRotation < -math.PI) {
+            deltaRotation += 2 * math.PI;
+        }
+        state.currentRotation += math.clamp(deltaRotation, -rotThisFrame, rotThisFrame);
 
-        var localRotation = quaternion.EulerXYZ(state.currentPitch, state.currentRotation, 0);
+        // pitch
+        var horizontalLength = math.sqrt(targetVector.x * targetVector.x + targetVector.z * targetVector.z);
+        var targetPitch = (math.atan(horizontalLength / targetVector.y) + DOUBLE_PI) % (math.PI);
+        var pitchThisFrame = deltaTime * gun.pitchSpeed;
+        
+        var deltaPitch = (targetPitch - state.currentPitch);
+        var deltaPitchClamped = math.clamp(deltaPitch, -pitchThisFrame, pitchThisFrame);
+        state.currentPitch = math.clamp(state.currentPitch + deltaPitchClamped, HALF_PI - gun.maximumPitchDelta, HALF_PI + gun.maximumPitchDelta);
+
+        // have to adjust current pitch by 90 degrees because polar coords have 0 as being straight upwards rather than forwards, which is what unity expects
+        var localRotation = quaternion.EulerXYZ(state.currentPitch - HALF_PI, state.currentRotation, 0);
         var worldRotation = math.mul(gun.neutralRotation, localRotation);
         rotation.Value = worldRotation;
+
+        // used for deciding whether to shoot
+        state.targetRotationDelta = deltaRotation;
+        state.targetPitchDelta = deltaPitch;
     }
 }
 
@@ -68,7 +89,8 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
             ref GunState state,
             [ReadOnly] ref HasTarget targetData) {
 
-        if (math.abs(state.targetAngle) > gun.shotDeviation / 2f) { return; }
+        if (math.abs(state.targetRotationDelta) > gun.shotDeviation) { return; }
+        if (math.abs(state.targetPitchDelta) > gun.shotDeviation) { return; }
 
         if (state.shotsRemaining > 0) {
             if (state.currentFireInterval > 0) {
