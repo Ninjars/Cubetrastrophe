@@ -26,8 +26,8 @@ struct CollisionJob : ICollisionEventsJob {
         queuedActions.Enqueue(new ProjectileImpactEvent {
             normal = collision.Normal,
             position = collisionDetails.AverageContactPointPosition,
-            projectile = projectile,
-            other = other
+            a = projectile,
+            b = other
         });
     }
 }

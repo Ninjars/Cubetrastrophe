@@ -7,7 +7,7 @@ using UnityEngine;
 
 public class ProjectileImpactManager : MonoBehaviour {
 
-    struct ProjectileMiss : IComponentData {}
+    struct ProjectileMiss : IComponentData { }
 
     public static NativeQueue<ProjectileImpactEvent> queuedProjectileEvents;
 
@@ -27,8 +27,8 @@ public class ProjectileImpactManager : MonoBehaviour {
     }
 
     public struct ProjectileImpactEvent {
-        public Entity projectile;
-        public Entity other;
+        public Entity a;
+        public Entity b;
         public float3 normal;
         public float3 position;
     }
@@ -69,20 +69,36 @@ public class QueuedActionSystem : ComponentSystem {
         ProjectileImpactManager.ProjectileImpactEvent projectileEvent;
         var destroyOther = false;
         while (ProjectileImpactManager.queuedProjectileEvents.TryDequeue(out projectileEvent)) {
-            var projectileEntity = projectileEvent.projectile;
-
-            if (!EntityManager.HasComponent<Translation>(projectileEntity)) {
-                // I guess it's already dead?
-                World.Active.EntityManager.DestroyEntity(projectileEntity);
-                continue;
-            }
-
             ProjectileImpactManager.ImpactType impactType;
-            if (EntityManager.HasComponent<Projectile>(projectileEvent.other)) {
+
+            var exitEarly = false;
+            if (!EntityManager.HasComponent<Translation>(projectileEvent.a)) {
+                World.Active.EntityManager.DestroyEntity(projectileEvent.a);
+                exitEarly = true;
+            }
+            if (!EntityManager.HasComponent<Translation>(projectileEvent.b)) {
+                World.Active.EntityManager.DestroyEntity(projectileEvent.b);
+                exitEarly = true;
+            }
+            if (exitEarly) continue;
+
+            var aIsProjectile = EntityManager.HasComponent<Projectile>(projectileEvent.a);
+            var bIsProjectile = EntityManager.HasComponent<Projectile>(projectileEvent.b);
+            if (aIsProjectile && bIsProjectile) {
                 impactType = ProjectileImpactManager.ImpactType.PROJECTILE;
-                destroyOther = true;
-            } else if (EntityManager.HasComponent<BTeamTag>(projectileEvent.other) || EntityManager.HasComponent<ATeamTag>(projectileEvent.other)) {
+
+            } else if (aIsProjectile
+                && (EntityManager.HasComponent<BTeamTag>(projectileEvent.b)
+                    || EntityManager.HasComponent<ATeamTag>(projectileEvent.b))
+            ) {
                 impactType = ProjectileImpactManager.ImpactType.METAL;
+
+            } else if (bIsProjectile
+                && (EntityManager.HasComponent<BTeamTag>(projectileEvent.a)
+                    || EntityManager.HasComponent<ATeamTag>(projectileEvent.a))
+            ) {
+                impactType = ProjectileImpactManager.ImpactType.METAL;
+
             } else {
                 impactType = ProjectileImpactManager.ImpactType.GROUND;
             }
@@ -98,9 +114,11 @@ public class QueuedActionSystem : ComponentSystem {
             // if target is ground create dust piff effect
             // else create sparks piff effect
 
-            World.Active.EntityManager.DestroyEntity(projectileEntity);
-            if (destroyOther) {
-                World.Active.EntityManager.DestroyEntity(projectileEvent.other);
+            if (aIsProjectile) {
+                World.Active.EntityManager.DestroyEntity(projectileEvent.a);
+            }
+            if (bIsProjectile) {
+                World.Active.EntityManager.DestroyEntity(projectileEvent.b);
             }
         }
     }
