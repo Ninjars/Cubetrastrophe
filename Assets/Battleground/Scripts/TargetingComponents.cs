@@ -50,8 +50,8 @@ public struct HasTarget : IComponentData {
 
 public class HasTargetDebug : ComponentSystem {
     protected override void OnUpdate() {
-        Entities.ForEach((Entity entity, ref Translation translation, ref HasTarget hasTarget) => {
-            Debug.DrawLine(translation.Value, hasTarget.targetPosition);
+        Entities.ForEach((Entity entity, ref LocalToWorld translation, ref HasTarget hasTarget) => {
+            Debug.DrawLine(translation.Position, hasTarget.targetPosition);
         });
     }
 }

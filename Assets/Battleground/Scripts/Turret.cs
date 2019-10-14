@@ -27,7 +27,7 @@ public class Turret : MonoBehaviour {
         var baseInstance = entityManager.Instantiate(baseEntity); 
         entityManager.SetComponentData(
             baseInstance,
-            new Translation { Value = transform.TransformPoint(0, 0, 0) }
+            new Translation { Value = transform.position }
         );
         entityManager.SetComponentData(
             baseInstance,
@@ -36,13 +36,21 @@ public class Turret : MonoBehaviour {
 
         Entity projectileEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(projectilePrefab, World.Active);
         Entity turretEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(turretPrefab, World.Active);
+
         TeamTag tag = team.toComponent();
         tag.AssignToEntity(entityManager, turretEntity);
 
         var instance = entityManager.Instantiate(turretEntity);
+        entityManager.AddComponent(instance, typeof(LocalToParent));
+        entityManager.AddComponent(instance, typeof(Parent));
+        entityManager.SetComponentData<Parent>(
+            instance, 
+            new Parent { Value = baseInstance }
+        );
+
         entityManager.SetComponentData(
             instance,
-            new Translation { Value = new float3(transform.position) + math.mul(transform.rotation, new float3(0, 0.815f, 0)) }
+            new Translation { Value = math.mul(transform.rotation, new float3(0, 0.815f, 0)) }
         );
         entityManager.SetComponentData(
             instance,
@@ -59,7 +67,7 @@ public class Turret : MonoBehaviour {
             maximumPitchDelta = math.radians(21f),
             rotationSpeed = 1f,
             pitchSpeed = 5f,
-            neutralRotation = transform.rotation,
+            neutralRotation = quaternion.identity,
         });
         
         entityManager.AddComponentData(instance, new GunState {

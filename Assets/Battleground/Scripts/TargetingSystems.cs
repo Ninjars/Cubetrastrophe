@@ -13,9 +13,9 @@ static class TargetingSystemUtils {
         public float3 position;
     }
 
-    public static EntityWithPosition getClosestTarget(NativeArray<EntityWithPosition> targetArray, ref Translation translation) {
+    public static EntityWithPosition getClosestTarget(NativeArray<EntityWithPosition> targetArray, ref LocalToWorld translation) {
         Entity closest = Entity.Null;
-        float3 unitPosition = translation.Value;
+        float3 unitPosition = translation.Position;
         float3 matchedTargetPosition = float3.zero;
         float bestDistance = float.MaxValue;
 
@@ -66,35 +66,35 @@ public class TeamAFindTargetJobSystem : JobComponentSystem {
     [RequireComponentTag(typeof(ATeamTag))]
     [ExcludeComponent(typeof(HasTarget))]
     [BurstCompile]
-    private struct FindTargetJob : IJobForEachWithEntity<Translation> {
+    private struct FindTargetJob : IJobForEachWithEntity<LocalToWorld> {
 
         [DeallocateOnJobCompletion]
         [ReadOnly]
         public NativeArray<TargetingSystemUtils.EntityWithPosition> targetArray;
         public NativeArray<TargetingSystemUtils.EntityWithPosition> closestTargetArray;
 
-        public void Execute(Entity entity, int index, [ReadOnly] ref Translation translation) {
+        public void Execute(Entity entity, int index, [ReadOnly] ref LocalToWorld translation) {
             closestTargetArray[index] = TargetingSystemUtils.getClosestTarget(targetArray, ref translation);
         }
     }
 
     [RequireComponentTag(typeof(ATeamTag))]
     [ExcludeComponent(typeof(HasTarget))]
-    private struct AssignTargetJob : IJobForEachWithEntity<Translation> {
+    private struct AssignTargetJob : IJobForEachWithEntity<LocalToWorld> {
 
         [DeallocateOnJobCompletion]
         [ReadOnly]
         public NativeArray<TargetingSystemUtils.EntityWithPosition> closestTargetArray;
         public EntityCommandBuffer.Concurrent commandBuffer;
 
-        public void Execute(Entity entity, int index, [ReadOnly] ref Translation translation) {
+        public void Execute(Entity entity, int index, [ReadOnly] ref LocalToWorld translation) {
             TargetingSystemUtils.assignTarget(closestTargetArray, commandBuffer, entity, index);
         }
     }
 
     protected override void OnCreate() {
         endSimCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
-        targetsQuery = GetEntityQuery(typeof(BTeamTag), ComponentType.ReadOnly<Translation>());
+        targetsQuery = GetEntityQuery(typeof(BTeamTag), ComponentType.ReadOnly<LocalToWorld>());
         searchersQuery = GetEntityQuery(typeof(ATeamTag), ComponentType.Exclude<HasTarget>());
     }
 
@@ -102,14 +102,14 @@ public class TeamAFindTargetJobSystem : JobComponentSystem {
         // First gather the state data we want to operate on.
         // We want both entity and translation information about the target, so extract this from the target query.
         var targetEntities = targetsQuery.ToEntityArray(Allocator.TempJob);
-        var targetTranslations = targetsQuery.ToComponentDataArray<Translation>(Allocator.TempJob);
+        var targetTranslations = targetsQuery.ToComponentDataArray<LocalToWorld>(Allocator.TempJob);
 
         // Construct a new array that merges the two data types together into simple structs.
         var targetArray = new NativeArray<TargetingSystemUtils.EntityWithPosition>(targetEntities.Length, Allocator.TempJob);
         for (int i = 0; i < targetArray.Length; i++) {
             targetArray[i] = new TargetingSystemUtils.EntityWithPosition {
                 entity = targetEntities[i],
-                position = targetTranslations[i].Value,
+                position = targetTranslations[i].Position,
             };
         }
 
@@ -149,35 +149,35 @@ public class TeamBFindTargetJobSystem : JobComponentSystem {
     [RequireComponentTag(typeof(BTeamTag))]
     [ExcludeComponent(typeof(HasTarget))]
     [BurstCompile]
-    private struct FindTargetJob : IJobForEachWithEntity<Translation> {
+    private struct FindTargetJob : IJobForEachWithEntity<LocalToWorld> {
 
         [DeallocateOnJobCompletion]
         [ReadOnly]
         public NativeArray<TargetingSystemUtils.EntityWithPosition> targetArray;
         public NativeArray<TargetingSystemUtils.EntityWithPosition> closestTargetArray;
 
-        public void Execute(Entity entity, int index, [ReadOnly] ref Translation translation) {
+        public void Execute(Entity entity, int index, [ReadOnly] ref LocalToWorld translation) {
             closestTargetArray[index] = TargetingSystemUtils.getClosestTarget(targetArray, ref translation);
         }
     }
 
     [RequireComponentTag(typeof(BTeamTag))]
     [ExcludeComponent(typeof(HasTarget))]
-    private struct AssignTargetJob : IJobForEachWithEntity<Translation> {
+    private struct AssignTargetJob : IJobForEachWithEntity<LocalToWorld> {
 
         [DeallocateOnJobCompletion]
         [ReadOnly]
         public NativeArray<TargetingSystemUtils.EntityWithPosition> closestTargetArray;
         public EntityCommandBuffer.Concurrent commandBuffer;
 
-        public void Execute(Entity entity, int index, [ReadOnly] ref Translation translation) {
+        public void Execute(Entity entity, int index, [ReadOnly] ref LocalToWorld translation) {
             TargetingSystemUtils.assignTarget(closestTargetArray, commandBuffer, entity, index);
         }
     }
 
     protected override void OnCreate() {
         endSimCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
-        targetsQuery = GetEntityQuery(typeof(ATeamTag), ComponentType.ReadOnly<Translation>());
+        targetsQuery = GetEntityQuery(typeof(ATeamTag), ComponentType.ReadOnly<LocalToWorld>());
         searchersQuery = GetEntityQuery(typeof(BTeamTag), ComponentType.Exclude<HasTarget>());
     }
 
@@ -185,14 +185,14 @@ public class TeamBFindTargetJobSystem : JobComponentSystem {
         // First gather the state data we want to operate on.
         // We want both entity and translation information about the target, so extract this from the target query.
         var targetEntities = targetsQuery.ToEntityArray(Allocator.TempJob);
-        var targetTranslations = targetsQuery.ToComponentDataArray<Translation>(Allocator.TempJob);
+        var targetTranslations = targetsQuery.ToComponentDataArray<LocalToWorld>(Allocator.TempJob);
 
         // Construct a new array that merges the two data types together into simple structs.
         var targetArray = new NativeArray<TargetingSystemUtils.EntityWithPosition>(targetEntities.Length, Allocator.TempJob);
         for (int i = 0; i < targetArray.Length; i++) {
             targetArray[i] = new TargetingSystemUtils.EntityWithPosition {
                 entity = targetEntities[i],
-                position = targetTranslations[i].Value,
+                position = targetTranslations[i].Position,
             };
         }
 
@@ -231,14 +231,14 @@ public class RefreshHasTargetSystem : JobComponentSystem {
         public EntityCommandBuffer.Concurrent commandBuffer;
         public float deltaTime;
         [ReadOnly]
-        public ComponentDataFromEntity<Translation> translationType;
+        public ComponentDataFromEntity<LocalToWorld> translationType;
 
         public void Execute(Entity entity, int index, ref HasTarget hasTarget) {
             hasTarget.elapsedRefreshTime += deltaTime;
             if (hasTarget.elapsedRefreshTime > hasTarget.refreshTargetPeriod) {
                 commandBuffer.RemoveComponent<HasTarget>(index, entity);
             } else {
-                hasTarget.targetPosition = translationType[hasTarget.targetEntity].Value;
+                hasTarget.targetPosition = translationType[hasTarget.targetEntity].Position;
             }
         }
     }
@@ -251,7 +251,7 @@ public class RefreshHasTargetSystem : JobComponentSystem {
         var job = new RefreshTargetJob {
             commandBuffer = endSimCommandBufferSystem.CreateCommandBuffer().ToConcurrent(),
             deltaTime = Time.deltaTime,
-            translationType = GetComponentDataFromEntity<Translation>(true),
+            translationType = GetComponentDataFromEntity<LocalToWorld>(true),
         };
 
         var jobHandle = job.Schedule(this, inputDeps);

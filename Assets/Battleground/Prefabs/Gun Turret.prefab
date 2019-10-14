@@ -52,4 +52,4 @@ MonoBehaviour:
   muzzleEffectPrefab: {fileID: 222761739635320889, guid: c43b424953f3fe749985dbe9f27284eb,
     type: 3}
   team: 1
-  selfInstantiate: 0
+  selfInstantiate: 1
