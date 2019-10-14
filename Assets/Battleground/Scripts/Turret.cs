@@ -10,10 +10,16 @@ public class Turret : MonoBehaviour {
     public GameObject projectilePrefab;
     public GameObject muzzleEffectPrefab;
     public Team team;
+    public bool selfInstantiate;
     
     public static GameObject muzzleEffectPrefabRef { get; private set; }
 
     void Start() {
+        if (selfInstantiate) {
+            instantiate();
+        }
+    }
+    public Entity instantiate() {
         muzzleEffectPrefabRef = muzzleEffectPrefab;
         var entityManager = World.Active.EntityManager;
 
@@ -63,6 +69,8 @@ public class Turret : MonoBehaviour {
             currentPitch = math.PI/2f,
             targetPitchDelta = math.PI/2f,
         });
+
+        return baseInstance;
     }
 
     internal static void onShotFired(float3 position, quaternion rotationQuaternion) {
