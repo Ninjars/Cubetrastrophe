@@ -13,14 +13,17 @@ public class ProjectileImpactManager : MonoBehaviour {
 
     public GameObject dustImpactPrefab;
     public GameObject metalImpactPrefab;
+    public GameObject projectileImpactPrefab;
 
     public static GameObject dustImpactPrefabRef { get; private set; }
     public static GameObject metalImpactPrefabRef { get; private set; }
+    public static GameObject projectileImpactPrefabRef { get; private set; }
 
     private void Awake() {
         queuedProjectileEvents = new NativeQueue<ProjectileImpactEvent>(Allocator.Persistent);
         dustImpactPrefabRef = dustImpactPrefab;
         metalImpactPrefabRef = metalImpactPrefab;
+        projectileImpactPrefabRef = projectileImpactPrefab;
     }
 
     public struct ProjectileImpactEvent {
@@ -32,7 +35,8 @@ public class ProjectileImpactManager : MonoBehaviour {
 
     public enum ImpactType {
         GROUND,
-        METAL
+        METAL,
+        PROJECTILE,
     }
 
     internal static void onImpact(ImpactType impactType, float3 position, float3 normal) {
@@ -44,6 +48,9 @@ public class ProjectileImpactManager : MonoBehaviour {
                 break;
             case ImpactType.METAL:
                 prefab = ProjectileImpactManager.metalImpactPrefabRef;
+                break;
+            case ImpactType.PROJECTILE:
+                prefab = ProjectileImpactManager.projectileImpactPrefabRef;
                 break;
             default:
                 prefab = ProjectileImpactManager.metalImpactPrefabRef;
@@ -60,6 +67,7 @@ public class QueuedActionSystem : ComponentSystem {
 
     protected override void OnUpdate() {
         ProjectileImpactManager.ProjectileImpactEvent projectileEvent;
+        var destroyOther = false;
         while (ProjectileImpactManager.queuedProjectileEvents.TryDequeue(out projectileEvent)) {
             var projectileEntity = projectileEvent.projectile;
 
@@ -70,7 +78,10 @@ public class QueuedActionSystem : ComponentSystem {
             }
 
             ProjectileImpactManager.ImpactType impactType;
-            if (EntityManager.HasComponent<TargetTag>(projectileEvent.other) || EntityManager.HasComponent<Turret>(projectileEvent.other)) {
+            if (EntityManager.HasComponent<Projectile>(projectileEvent.other)) {
+                impactType = ProjectileImpactManager.ImpactType.PROJECTILE;
+                destroyOther = true;
+            } else if (EntityManager.HasComponent<BTeamTag>(projectileEvent.other) || EntityManager.HasComponent<ATeamTag>(projectileEvent.other)) {
                 impactType = ProjectileImpactManager.ImpactType.METAL;
             } else {
                 impactType = ProjectileImpactManager.ImpactType.GROUND;
@@ -88,6 +99,9 @@ public class QueuedActionSystem : ComponentSystem {
             // else create sparks piff effect
 
             World.Active.EntityManager.DestroyEntity(projectileEntity);
+            if (destroyOther) {
+                World.Active.EntityManager.DestroyEntity(projectileEvent.other);
+            }
         }
     }
 

@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 1146207728194174280}
   - component: {fileID: 1146207728194174279}
   m_Layer: 0
-  m_Name: Effects Manager
+  m_Name: Projectile Effects Manager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -46,4 +46,6 @@ MonoBehaviour:
   dustImpactPrefab: {fileID: 3809435437847499051, guid: 00ad4126e6f598e46b2890ab5362a905,
     type: 3}
   metalImpactPrefab: {fileID: 1055606106712083322, guid: 53e53274941a7f248bf46465a2b27cd3,
+    type: 3}
+  projectileImpactPrefab: {fileID: 1337198075554910, guid: 25c7aa9ad705fe143a4d71c1c8deb7d4,
     type: 3}
