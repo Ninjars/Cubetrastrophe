@@ -1,8 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
 using Unity.Entities;
-using Unity.Mathematics;
-using Unity.Rendering;
 using Unity.Transforms;
 using UnityEngine;
 
@@ -17,7 +13,7 @@ public class TargetSpawner : MonoBehaviour {
         entityManager = World.Active.EntityManager;
 
         targetEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(targetPrefab, World.Active);
-        entityManager.AddComponentData(targetEntity, new TargetTag {});
+        entityManager.AddComponentData(targetEntity, new BTeamTag {});
 
         for (int i = 0; i < maxTargetCount; i++) {
             spawnTargetEntity();

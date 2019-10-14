@@ -1,8 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Mathematics;
-using Unity.Rendering;
 using Unity.Transforms;
 using UnityEngine;
 
@@ -12,6 +9,8 @@ public class Turret : MonoBehaviour {
     public GameObject turretPrefab;
     public GameObject projectilePrefab;
     public GameObject muzzleEffectPrefab;
+    public Team team;
+    
     public static GameObject muzzleEffectPrefabRef { get; private set; }
 
     void Start() {
@@ -31,7 +30,8 @@ public class Turret : MonoBehaviour {
 
         Entity projectileEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(projectilePrefab, World.Active);
         Entity turretEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(turretPrefab, World.Active);
-        entityManager.AddComponentData(turretEntity, new DefenderTag { });
+        TeamTag tag = team.toComponent();
+        tag.AssignToEntity(entityManager, turretEntity);
 
         var instance = entityManager.Instantiate(turretEntity);
         entityManager.SetComponentData(
