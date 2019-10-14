@@ -109,4 +109,4 @@ MonoBehaviour:
     type: 3}
   turretPrefab: {fileID: 3797769344017613159, guid: cbf134461d240a04d9084c70d28c101a,
     type: 3}
-  team: 1
+  team: 2

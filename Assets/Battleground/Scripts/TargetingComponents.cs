@@ -19,7 +19,14 @@ public struct ATeamTag : TeamTag, IComponentData {
     }
 }
 
+public struct NoTeamTag : TeamTag {
+    public void AssignToEntity(EntityManager manager, Entity entity) {
+        // no action
+    }
+}
+
 public enum Team {
+    NONE,
     TEAM_A,
     TEAM_B,
 }
@@ -29,7 +36,7 @@ static class TeamExtensions {
         switch(team) {
             case Team.TEAM_A: return new ATeamTag{};
             case Team.TEAM_B: return new BTeamTag{};
-            default: throw new ArgumentOutOfRangeException();
+            default: return new NoTeamTag{};
         }
     }
 }
