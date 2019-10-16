@@ -11,7 +11,7 @@ using UnityEngine;
 
 // credit for aid with the quaternion -> axis angle maths https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm
 [BurstCompile]
-struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget, GunState> {
+struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, HasTarget, GunState> {
     private readonly static float PITCH_UPDATE_ANGLE = math.PI / 4f;
     private readonly static float HALF_PI = math.PI / 2f;
     private readonly static float DOUBLE_PI = math.PI * 2f;
@@ -31,13 +31,16 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Rotation, GunData, HasTarget,
 
     public void Execute(
             [ReadOnly] ref LocalToWorld transform,
+            [ReadOnly] ref Parent parent,
             ref Rotation rotation,
             [ReadOnly] ref GunData gun,
             [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
 
         var targetVector = math.normalize(targetData.targetPosition - transform.Position);
+
         // rotate relative vector into local space
+        // var parentRotation = World.Active.EntityManager.GetComponentData<Rotation>(parent.Value);
         targetVector = math.mul(math.inverse(gun.neutralRotation), targetVector);
 
         // rotation
@@ -156,6 +159,7 @@ public class TurretControlSystem : JobComponentSystem {
         // Cached access to a set of ComponentData based on a specific query
         rotationQueryGroup = GetEntityQuery(
             ComponentType.ReadOnly<LocalToWorld>(),
+            ComponentType.ReadOnly<Parent>(),
             typeof(Rotation),
             ComponentType.ReadOnly<GunData>(),
             ComponentType.ReadOnly<HasTarget>(),

@@ -50,11 +50,11 @@ public class Turret : MonoBehaviour {
 
         entityManager.SetComponentData(
             instance,
-            new Translation { Value = math.mul(transform.rotation, new float3(0, 0.815f, 0)) }
+            new Translation { Value = new float3(0, 0.815f, 0) }
         );
         entityManager.SetComponentData(
             instance,
-            new Rotation { Value = transform.rotation }
+            new Rotation { Value = quaternion.identity }
         );
         entityManager.AddComponentData(instance, new GunData {
             projectileEntity = projectileEntity,
