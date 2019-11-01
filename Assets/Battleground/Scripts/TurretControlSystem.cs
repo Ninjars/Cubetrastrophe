@@ -65,8 +65,7 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, Ha
 
         // have to adjust current pitch by 90 degrees because polar coords have 0 as being straight upwards rather than forwards, which is what unity expects
         var localRotation = quaternion.EulerXYZ(state.currentPitch - HALF_PI, state.currentRotation, 0);
-        var worldRotation = math.mul(gun.neutralRotation, localRotation);
-        rotation.Value = worldRotation;
+        rotation.Value = localRotation;
 
         // used for deciding whether to shoot
         state.targetRotationDelta = deltaRotation;
@@ -114,14 +113,15 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
 
     private void fireProjectile(Entity entity, int index, ref LocalToWorld transform, ref Rotation rotation, ref GunData gun, ref GunState state) {
         state.shotsRemaining = state.shotsRemaining - 1;
+        var localRotation =  math.mul(gun.neutralRotation, rotation.Value);
 
         var rnd = randomSources[threadIndex];
         var xOffset = quaternion.AxisAngle(math.up(), (rnd.NextFloat() * 2 - 1) * gun.shotDeviation);
         var yOffset = quaternion.AxisAngle(new float3(1, 0, 0), (rnd.NextFloat() * 2 - 1) * gun.shotDeviation);
-        var bulletFacing = math.mul(math.mul(rotation.Value, xOffset), yOffset);
+        var bulletFacing = math.mul(math.mul(localRotation, xOffset), yOffset);
 
         var instance = commandBuffer.Instantiate(index, gun.projectileEntity);
-        var position = transform.Position + math.rotate(rotation.Value.value, gun.projectileOffset);
+        var position = transform.Position + math.rotate(localRotation.value, gun.projectileOffset);
         commandBuffer.SetComponent(index, instance, new Translation { Value = position });
         commandBuffer.SetComponent(index, instance, new Rotation { Value = bulletFacing });
         commandBuffer.SetComponent(index, instance, new PhysicsVelocity() {

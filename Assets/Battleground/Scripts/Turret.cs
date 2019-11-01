@@ -67,7 +67,7 @@ public class Turret : MonoBehaviour {
             maximumPitchDelta = math.radians(21f),
             rotationSpeed = 1f,
             pitchSpeed = 5f,
-            neutralRotation = quaternion.identity,
+            neutralRotation = transform.rotation,
         });
         
         entityManager.AddComponentData(instance, new GunState {
