@@ -67,7 +67,6 @@ public class QueuedActionSystem : ComponentSystem {
 
     protected override void OnUpdate() {
         ProjectileImpactManager.ProjectileImpactEvent projectileEvent;
-        var destroyOther = false;
         while (ProjectileImpactManager.queuedProjectileEvents.TryDequeue(out projectileEvent)) {
             ProjectileImpactManager.ImpactType impactType;
 
