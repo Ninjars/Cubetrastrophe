@@ -28,15 +28,14 @@ public class Attacker : MonoBehaviour {
         foreach (Transform t in transform) {
             if (t.name == "Gun") {
                 var turret = GameObject.Instantiate(turretPrefab);
+                turret.transform.parent = transform;
                 turret.selfInstantiate = false;
                 turret.team = team;
 
-                Entity turretEntity = turret.instantiate();
+                Entity turretEntity = turret.instantiate(t.position - transform.position, t.rotation);
                 entityManager.AddComponent(turretEntity, typeof(LocalToParent));
                 entityManager.AddComponent(turretEntity, typeof(Parent));
                 entityManager.SetComponentData<Parent>(turretEntity, new Parent { Value = baseInstance });
-                entityManager.SetComponentData<Translation>(turretEntity, new Translation { Value = t.position - transform.position });
-                entityManager.SetComponentData<Rotation>(turretEntity, new Rotation { Value = t.rotation });
             }
         }
     }

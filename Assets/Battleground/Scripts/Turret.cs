@@ -16,22 +16,23 @@ public class Turret : MonoBehaviour {
 
     void Start() {
         if (selfInstantiate) {
-            instantiate();
+            instantiate(transform.position, transform.rotation);
         }
     }
-    public Entity instantiate() {
+
+    public Entity instantiate(float3 position, quaternion rotation) {
         muzzleEffectPrefabRef = muzzleEffectPrefab;
         var entityManager = World.Active.EntityManager;
 
         var baseEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(basePrefab, World.Active);
-        var baseInstance = entityManager.Instantiate(baseEntity); 
+        var baseInstance = entityManager.Instantiate(baseEntity);
         entityManager.SetComponentData(
             baseInstance,
-            new Translation { Value = transform.position }
+            new Translation { Value = position }
         );
         entityManager.SetComponentData(
             baseInstance,
-            new Rotation { Value = transform.rotation }
+            new Rotation { Value = rotation }
         );
 
         Entity projectileEntity = GameObjectConversionUtility.ConvertGameObjectHierarchy(projectilePrefab, World.Active);
@@ -67,7 +68,7 @@ public class Turret : MonoBehaviour {
             maximumPitchDelta = math.radians(21f),
             rotationSpeed = 1f,
             pitchSpeed = 5f,
-            neutralRotation = transform.rotation,
+            neutralRotation = rotation,
         });
         
         entityManager.AddComponentData(instance, new GunState {
