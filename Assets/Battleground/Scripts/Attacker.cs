@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
@@ -7,6 +9,7 @@ public class Attacker : MonoBehaviour {
 
     public GameObject bodyPrefab;
     public Turret turretPrefab;
+    public List<TurretInfo> turretPositionInfo;
     public Team team;
 
     void Start() {
@@ -25,18 +28,23 @@ public class Attacker : MonoBehaviour {
         TeamTag tag = team.toComponent();
         tag.AssignToEntity(entityManager, baseInstance);
 
-        foreach (Transform t in transform) {
-            if (t.name == "Gun") {
-                var turret = GameObject.Instantiate(turretPrefab);
-                turret.transform.parent = transform;
-                turret.selfInstantiate = false;
-                turret.team = team;
+        var baseRotation = entityManager.GetComponentData<Rotation>(baseInstance);
 
-                Entity turretEntity = turret.instantiate(t.position - transform.position, t.rotation);
-                entityManager.AddComponent(turretEntity, typeof(LocalToParent));
-                entityManager.AddComponent(turretEntity, typeof(Parent));
-                entityManager.SetComponentData<Parent>(turretEntity, new Parent { Value = baseInstance });
-            }
+        foreach (TurretInfo t in turretPositionInfo) {
+            var turret = GameObject.Instantiate(turretPrefab);
+            turret.selfInstantiate = false;
+            turret.team = team;
+
+            Entity turretEntity = turret.instantiate(baseRotation, t.position, quaternion.EulerXYZ(t.facing));
+            entityManager.AddComponent(turretEntity, typeof(LocalToParent));
+            entityManager.AddComponent(turretEntity, typeof(Parent));
+            entityManager.SetComponentData<Parent>(turretEntity, new Parent { Value = baseInstance });
         }
     }
+}
+
+[Serializable]
+public struct TurretInfo {
+    public float3 position;
+    public float3 facing;
 }

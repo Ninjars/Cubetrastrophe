@@ -16,11 +16,11 @@ public class Turret : MonoBehaviour {
 
     void Start() {
         if (selfInstantiate) {
-            instantiate(transform.position, transform.rotation);
+            instantiate(null, transform.position, transform.rotation);
         }
     }
 
-    public Entity instantiate(float3 position, quaternion rotation) {
+    public Entity instantiate(Rotation? parentRotation, float3 position, quaternion rotation) {
         muzzleEffectPrefabRef = muzzleEffectPrefab;
         var entityManager = World.Active.EntityManager;
 
