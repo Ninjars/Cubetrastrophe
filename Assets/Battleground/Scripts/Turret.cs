@@ -69,6 +69,7 @@ public class Turret : MonoBehaviour {
             rotationSpeed = 1f,
             pitchSpeed = 5f,
             neutralRotation = rotation,
+            parentRotation = parentRotation,
         });
         
         entityManager.AddComponentData(instance, new GunState {

@@ -1,6 +1,7 @@
 using System;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Transforms;
 using UnityEngine;
 
 [Serializable]
@@ -16,6 +17,7 @@ public struct GunData : IComponentData {
     public float rotationSpeed;
     public float pitchSpeed;
     public quaternion neutralRotation;
+    public Rotation? parentRotation;
 }
 
 public struct GunState : IComponentData {

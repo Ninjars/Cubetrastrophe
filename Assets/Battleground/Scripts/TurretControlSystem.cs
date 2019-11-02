@@ -41,7 +41,8 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, Ha
 
         // rotate relative vector into local space
         // var parentRotation = World.Active.EntityManager.GetComponentData<Rotation>(parent.Value);
-        targetVector = math.mul(math.inverse(gun.neutralRotation), targetVector);
+        var globalRotation = gun.parentRotation.Value.Value;
+        targetVector = math.mul(math.inverse(globalRotation), targetVector);
 
         // rotation
         var targetRotation = math.atan2(targetVector.x, targetVector.z);
@@ -113,7 +114,8 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
 
     private void fireProjectile(Entity entity, int index, ref LocalToWorld transform, ref Rotation rotation, ref GunData gun, ref GunState state) {
         state.shotsRemaining = state.shotsRemaining - 1;
-        var localRotation =  math.mul(gun.neutralRotation, rotation.Value);
+        var globalRotation = gun.parentRotation.Value.Value;
+        var localRotation = math.mul(globalRotation, rotation.Value);
 
         var rnd = randomSources[threadIndex];
         var xOffset = quaternion.AxisAngle(math.up(), (rnd.NextFloat() * 2 - 1) * gun.shotDeviation);
