@@ -18,6 +18,14 @@ public struct GunData : IComponentData {
     public float pitchSpeed;
     public quaternion neutralRotation;
     public Rotation? parentRotation;
+
+    public quaternion getParentRotation() {
+        if (parentRotation.HasValue) {
+            return parentRotation.Value.Value;
+        } else {
+            return quaternion.identity;
+        }
+    }
 }
 
 public struct GunState : IComponentData {
