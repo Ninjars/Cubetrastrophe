@@ -66,7 +66,7 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, Ha
 
         // have to adjust current pitch by 90 degrees because polar coords have 0 as being straight upwards rather than forwards, which is what unity expects
         var localRotation = quaternion.EulerXYZ(state.currentPitch - HALF_PI, state.currentRotation, 0);
-        rotation.Value = localRotation;
+        rotation.Value = math.mul(math.inverse(gun.neutralRotation), localRotation);
 
         // used for deciding whether to shoot
         state.targetRotationDelta = deltaRotation;
@@ -115,7 +115,7 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
     private void fireProjectile(Entity entity, int index, ref LocalToWorld transform, ref Rotation rotation, ref GunData gun, ref GunState state) {
         state.shotsRemaining = state.shotsRemaining - 1;
         var globalRotation = gun.parentRotation.Value.Value;
-        var localRotation = math.mul(globalRotation, rotation.Value);
+        var localRotation = math.mul(globalRotation, math.mul(gun.neutralRotation, rotation.Value));
 
         var rnd = randomSources[threadIndex];
         var xOffset = quaternion.AxisAngle(math.up(), (rnd.NextFloat() * 2 - 1) * gun.shotDeviation);
