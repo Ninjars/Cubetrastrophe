@@ -13,8 +13,12 @@ public class Turret : MonoBehaviour {
     public bool selfInstantiate;
     
     public static GameObject muzzleEffectPrefabRef { get; private set; }
+    private static ObjectPool muzzleEffectPool;
 
     void Start() {
+        if (muzzleEffectPool == null) {
+            muzzleEffectPool = new ObjectPool(muzzleEffectPrefab, 10);
+        }
         if (selfInstantiate) {
             instantiate(null, transform.position, transform.rotation);
         }
@@ -87,8 +91,9 @@ public class Turret : MonoBehaviour {
         if (math.isnan(position.x)) return;
         var rotation = rotationQuaternion.value;
         if (math.isnan(rotation.x)) return;
-        var effectInstance = GameObject.Instantiate(muzzleEffectPrefabRef);
+        var effectInstance = muzzleEffectPool.getObject();
         effectInstance.transform.position = new Vector3(position.x, position.y, position.z);
         effectInstance.transform.rotation = new Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+        effectInstance.SetActive(true);
     }
 }

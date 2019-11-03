@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -19,11 +20,20 @@ public class ProjectileImpactManager : MonoBehaviour {
     public static GameObject metalImpactPrefabRef { get; private set; }
     public static GameObject projectileImpactPrefabRef { get; private set; }
 
+    private static Dictionary<GameObject, ObjectPool> objectPools;
+
     private void Awake() {
         queuedProjectileEvents = new NativeQueue<ProjectileImpactEvent>(Allocator.Persistent);
         dustImpactPrefabRef = dustImpactPrefab;
         metalImpactPrefabRef = metalImpactPrefab;
         projectileImpactPrefabRef = projectileImpactPrefab;
+
+        if (objectPools == null) {
+            objectPools = new Dictionary<GameObject, ObjectPool>(3);
+            objectPools[dustImpactPrefab] = new ObjectPool(dustImpactPrefab, 10);
+            objectPools[metalImpactPrefab] = new ObjectPool(metalImpactPrefab, 10);
+            objectPools[projectileImpactPrefab] = new ObjectPool(projectileImpactPrefab, 10);
+        }
     }
 
     public struct ProjectileImpactEvent {
@@ -56,9 +66,10 @@ public class ProjectileImpactManager : MonoBehaviour {
                 prefab = ProjectileImpactManager.metalImpactPrefabRef;
                 break;
         }
-        var effectInstance = GameObject.Instantiate(prefab);
+        var effectInstance = objectPools[prefab].getObject();
         effectInstance.transform.position = new Vector3(position.x, position.y, position.z);
         effectInstance.transform.rotation = Quaternion.LookRotation(normal);
+        effectInstance.SetActive(true);
     }
 }
 
