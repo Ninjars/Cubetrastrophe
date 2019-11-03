@@ -40,7 +40,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1146207728194174278}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9335f89ccf586d74ea06e2de1fdfe28a, type: 3}
+  m_Script: {fileID: 11500000, guid: 2559a6e8473c0264d970b8f8c1764f2c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   dustImpactPrefab: {fileID: 3809435437847499051, guid: 00ad4126e6f598e46b2890ab5362a905,

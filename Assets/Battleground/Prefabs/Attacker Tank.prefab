@@ -40,7 +40,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 4744554836880219963}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ea1caab67375e42d29c3572b9e1efe6b, type: 3}
+  m_Script: {fileID: 11500000, guid: 6cac5022c8f92734f90f9333eef001ce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   bodyPrefab: {fileID: 5320229724215936008, guid: 381b73997203b49839c1ed1e3fe3b350,
