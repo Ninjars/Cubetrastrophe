@@ -55,7 +55,7 @@ public class Turret : MonoBehaviour {
         );
         entityManager.SetComponentData(
             instance,
-            new Rotation { Value = quaternion.identity }
+            new Rotation { Value = rotation }
         );
         entityManager.AddComponentData(instance, new GunData {
             projectileEntity = projectileEntity,

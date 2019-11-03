@@ -35,7 +35,7 @@ public class Attacker : MonoBehaviour {
             turret.selfInstantiate = false;
             turret.team = team;
 
-            Entity turretEntity = turret.instantiate(baseRotation, t.position, quaternion.EulerXYZ(t.facing));
+            Entity turretEntity = turret.instantiate(baseRotation, t.position, quaternion.EulerXYZ(math.radians(t.facing.x), math.radians(t.facing.y), math.radians(t.facing.z)));
             entityManager.AddComponent(turretEntity, typeof(LocalToParent));
             entityManager.AddComponent(turretEntity, typeof(Parent));
             entityManager.SetComponentData<Parent>(turretEntity, new Parent { Value = baseInstance });

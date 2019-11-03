@@ -42,7 +42,7 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, Ha
         // rotate relative vector into local space
         // var parentRotation = World.Active.EntityManager.GetComponentData<Rotation>(parent.Value);
         var globalRotation = gun.getParentRotation();
-        targetVector = math.mul(math.inverse(globalRotation), targetVector);
+        targetVector = math.mul(math.mul(math.inverse(gun.neutralRotation), math.inverse(globalRotation)), targetVector);
 
         // rotation
         var targetRotation = math.atan2(targetVector.x, targetVector.z);
@@ -66,7 +66,8 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, Ha
 
         // have to adjust current pitch by 90 degrees because polar coords have 0 as being straight upwards rather than forwards, which is what unity expects
         var localRotation = quaternion.EulerXYZ(state.currentPitch - HALF_PI, state.currentRotation, 0);
-        rotation.Value = math.mul(math.inverse(gun.neutralRotation), localRotation);
+        rotation.Value = localRotation;
+
 
         // used for deciding whether to shoot
         state.targetRotationDelta = deltaRotation;
