@@ -132,9 +132,10 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
             Angular = float3.zero
         });
         commandBuffer.AddComponent(index, instance, new Projectile { firingEntity = entity });
-
+        
         var muzzleFlash = commandBuffer.CreateEntity(index, muzzleFlashEntity);
         commandBuffer.SetComponent(index, muzzleFlash, new MuzzleFlashSystem.MuzzleFlashComponent {
+            effectId = gun.muzzleFlashEffect,
             position = position,
             rotation = bulletFacing,
         });
@@ -210,12 +211,13 @@ public class MuzzleFlashSystem : ComponentSystem {
 
     protected override void OnUpdate() {
         Entities.ForEach((Entity entity, ref MuzzleFlashComponent muzzleFlash) => {
-            Turret.onShotFired(muzzleFlash.position, muzzleFlash.rotation);
+            Turret.onShotFired(muzzleFlash.effectId, muzzleFlash.position, muzzleFlash.rotation);
             PostUpdateCommands.DestroyEntity(entity);
         });
     }
 
     public struct MuzzleFlashComponent : IComponentData {
+        public int effectId;
         public float3 position;
         public quaternion rotation;
     }

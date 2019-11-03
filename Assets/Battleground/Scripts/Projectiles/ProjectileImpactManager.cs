@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Entities;
@@ -49,27 +50,51 @@ public class ProjectileImpactManager : MonoBehaviour {
         PROJECTILE,
     }
 
-    internal static void onImpact(ImpactType impactType, float3 position, float3 normal) {
+    internal static void onImpact(
+            ImpactType impactType,
+            ImpactEffect? effectTagA,
+            ImpactEffect? effectTagB,
+            float3 position,
+            float3 normal
+    ) {
         if (math.isnan(position.x)) return;
-        GameObject prefab;
-        switch (impactType) {
-            case ImpactType.GROUND:
-                prefab = ProjectileImpactManager.dustImpactPrefabRef;
-                break;
-            case ImpactType.METAL:
-                prefab = ProjectileImpactManager.metalImpactPrefabRef;
-                break;
-            case ImpactType.PROJECTILE:
-                prefab = ProjectileImpactManager.projectileImpactPrefabRef;
-                break;
-            default:
-                prefab = ProjectileImpactManager.metalImpactPrefabRef;
-                break;
+        if (effectTagA.HasValue) {
+            instantiateImpactEffect(effectTagA.Value.value, impactType, position, normal);
         }
-        var effectInstance = objectPools[prefab].getObject();
+        if (effectTagB.HasValue) {
+            instantiateImpactEffect(effectTagB.Value.value, impactType, position, normal);
+        }
+    }
+
+    private static void instantiateImpactEffect(
+            ProjectileEffect effectType,
+            ImpactType impactType,
+            float3 position,
+            float3 normal
+    ) {
+        var effectInstance = objectPools[getEffectForImpact(effectType, impactType)].getObject();
         effectInstance.transform.position = new Vector3(position.x, position.y, position.z);
         effectInstance.transform.rotation = Quaternion.LookRotation(normal);
         effectInstance.SetActive(true);
+    }
+
+    private static GameObject getEffectForImpact(ProjectileEffect effectType, ImpactType impactType) {
+        switch (effectType) {
+            case ProjectileEffect.BULLET: {
+                    switch (impactType) {
+                        case ImpactType.GROUND:
+                            return ProjectileImpactManager.dustImpactPrefabRef;
+                        case ImpactType.METAL:
+                            return ProjectileImpactManager.metalImpactPrefabRef;
+                        case ImpactType.PROJECTILE:
+                            return ProjectileImpactManager.projectileImpactPrefabRef;
+                        default:
+                            throw new ArgumentException($"unhandled impact type {impactType}");
+                    }
+                }
+            default:
+                throw new ArgumentException($"unhandled effect type {effectType}");
+        }
     }
 }
 
@@ -113,9 +138,21 @@ public class QueuedActionSystem : ComponentSystem {
                 impactType = ProjectileImpactManager.ImpactType.GROUND;
             }
 
-            float3 position = projectileEvent.position;
-            float3 normal = projectileEvent.normal;
-            ProjectileImpactManager.onImpact(impactType, position, normal);
+            ImpactEffect? aEffectTag = null;
+            if (EntityManager.HasComponent<ImpactEffect>(projectileEvent.a)) {
+                aEffectTag = EntityManager.GetComponentData<ImpactEffect>(projectileEvent.a);
+            }
+            ImpactEffect? bEffectTag = null;
+            if (EntityManager.HasComponent<ImpactEffect>(projectileEvent.b)) {
+                bEffectTag = EntityManager.GetComponentData<ImpactEffect>(projectileEvent.b);
+            }
+            ProjectileImpactManager.onImpact(
+                impactType,
+                aEffectTag,
+                bEffectTag,
+                projectileEvent.position,
+                projectileEvent.normal
+            );
 
             // TODO:
             // reduce HP of target if it has a HP object

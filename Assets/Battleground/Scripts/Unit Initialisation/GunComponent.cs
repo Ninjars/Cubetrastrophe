@@ -2,13 +2,13 @@ using System;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
-using UnityEngine;
 
 [Serializable]
 public struct GunData : IComponentData {
     public Entity projectileEntity;
     public float3 projectileOffset;
     public float projectileVelocity;
+    public int muzzleFlashEffect;
     public float reloadInterval;
     public float fireInterval;
     public int shotsPerReload;

@@ -43,13 +43,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 232bd7d8f6615cf4c83bddbe5b0d0964, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  basePrefab: {fileID: 3464522057266979980, guid: cfc9ed00df70a412da4675173538d23b,
-    type: 3}
-  turretPrefab: {fileID: 1396169108231919159, guid: b817afb94cb114f2e834e2e77fe74e0a,
-    type: 3}
-  projectilePrefab: {fileID: 1439515347430494525, guid: 92c34d61350ad429aa422be34eb5f6d2,
-    type: 3}
-  muzzleEffectPrefab: {fileID: 222761739635320889, guid: c43b424953f3fe749985dbe9f27284eb,
-    type: 3}
+  definition: {fileID: 11400000, guid: 7b251d049d308474390491cb84c91ceb, type: 2}
   team: 1
   selfInstantiate: 1
