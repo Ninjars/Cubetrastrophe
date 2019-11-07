@@ -43,6 +43,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 232bd7d8f6615cf4c83bddbe5b0d0964, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  definition: {fileID: 11400000, guid: 7b251d049d308474390491cb84c91ceb, type: 2}
+  definition:
+    definition: {fileID: 11400000, guid: 7b251d049d308474390491cb84c91ceb, type: 2}
+    position:
+      x: 0
+      y: 0
+      z: 0
+    facing:
+      x: 0
+      y: 0
+      z: 0
   team: 1
-  selfInstantiate: 1

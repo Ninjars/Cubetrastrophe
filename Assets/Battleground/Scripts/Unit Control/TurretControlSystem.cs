@@ -182,7 +182,7 @@ public class TurretControlSystem : JobComponentSystem {
     }
 
     protected override JobHandle OnUpdate(JobHandle inputDependencies) {
-        randomSources = new NativeArray<Unity.Mathematics.Random>(System.Environment.ProcessorCount + 1, Allocator.TempJob);
+        randomSources = new NativeArray<Unity.Mathematics.Random>(System.Environment.ProcessorCount + 2, Allocator.TempJob);
         for (int i = 0; i < randomSources.Length; i++) {
             randomSources[i] = new Unity.Mathematics.Random((uint)rnd.NextInt());
         }
@@ -211,7 +211,7 @@ public class MuzzleFlashSystem : ComponentSystem {
 
     protected override void OnUpdate() {
         Entities.ForEach((Entity entity, ref MuzzleFlashComponent muzzleFlash) => {
-            Turret.onShotFired(muzzleFlash.effectId, muzzleFlash.position, muzzleFlash.rotation);
+            TurretInstantiator.onShotFired(muzzleFlash.effectId, muzzleFlash.position, muzzleFlash.rotation);
             PostUpdateCommands.DestroyEntity(entity);
         });
     }

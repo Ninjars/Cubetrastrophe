@@ -1,4 +1,5 @@
-﻿using Unity.Collections;
+﻿using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Physics;
@@ -6,6 +7,7 @@ using Unity.Physics.Systems;
 using UnityEngine;
 using static ProjectileImpactManager;
 
+[BurstCompile]
 struct CollisionJob : ICollisionEventsJob {
     [ReadOnly] internal ComponentDataFromEntity<Projectile> projectiles;
     [ReadOnly] public PhysicsWorld World;

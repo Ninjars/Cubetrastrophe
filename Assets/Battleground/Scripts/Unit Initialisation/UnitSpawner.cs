@@ -1,23 +1,6 @@
-using System;
-using System.Collections.Generic;
 using Unity.Entities;
-using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
-
-[CreateAssetMenu(fileName = "Unit", menuName = "Scriptables/Unit")]
-public class UnitDefinition : ScriptableObject {
-    public GameObject bodyPrefab;
-    public Turret turretPrefab;
-    public List<TurretInfo> turretPositionInfo;
-    public Team team = Team.TEAM_B;
-}
-
-[Serializable]
-public struct TurretInfo {
-    public float3 position;
-    public float3 facing;
-}
 
 public class UnitSpawner : MonoBehaviour {
 
@@ -45,12 +28,8 @@ public class UnitSpawner : MonoBehaviour {
 
         var baseRotation = entityManager.GetComponentData<Rotation>(entity);
 
-        foreach (TurretInfo t in unitDef.turretPositionInfo) {
-            var turret = GameObject.Instantiate(unitDef.turretPrefab);
-            turret.selfInstantiate = false;
-            turret.team = unitDef.team;
-
-            Entity turretEntity = turret.instantiate(baseRotation, t.position, quaternion.EulerXYZ(math.radians(t.facing.x), math.radians(t.facing.y), math.radians(t.facing.z)));
+        foreach (TurretInfo turret in unitDef.turretPositionInfo) {
+            Entity turretEntity = TurretInstantiator.instantiate(unitDef.team, turret, baseRotation);
             entityManager.AddComponent(turretEntity, typeof(LocalToParent));
             entityManager.AddComponent(turretEntity, typeof(Parent));
             entityManager.SetComponentData<Parent>(turretEntity, new Parent { Value = entity });
