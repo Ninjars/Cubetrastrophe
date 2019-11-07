@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TurretDefinition
   basePrefab: {fileID: 3464522057266979980, guid: cfc9ed00df70a412da4675173538d23b,
     type: 3}
-  gun: {fileID: 11400000, guid: 117394d125135bd4db167526840cef31, type: 2}
+  gun: {fileID: 11400000, guid: d069bfdc24c316047afa2586b8eced9b, type: 2}
   gunOffset: {x: 0, y: 0.815, z: 0}

@@ -15,7 +15,7 @@ MonoBehaviour:
   prefab: {fileID: 1396169108231919159, guid: b817afb94cb114f2e834e2e77fe74e0a, type: 3}
   muzzleEffectPrefab: {fileID: 222761739635320889, guid: c43b424953f3fe749985dbe9f27284eb,
     type: 3}
-  projectile: {fileID: 11400000, guid: dd31088dfd0cf07478fb261511fea37d, type: 2}
+  projectile: {fileID: 11400000, guid: ec17954ee7640b54abe6042804d7c193, type: 2}
   barrelOffset: {x: 0, y: 0.52, z: 1.3}
   muzzleVelocity: 100
   reloadInterval: 0.5
