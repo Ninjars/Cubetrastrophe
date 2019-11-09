@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: 4155616bb5dc4de41a941797ae3f13c5, type: 3}
   m_Name: Bullet
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileDefinition
   prefab: {fileID: 1439515347430494525, guid: 92c34d61350ad429aa422be34eb5f6d2, type: 3}

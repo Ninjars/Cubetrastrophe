@@ -39,39 +39,39 @@ class TurretInstantiator {
         var definition = info.definition;
         instantiateData(definition);
         
-        var baseInstance = entityManager.Instantiate(entities[definition.basePrefab.GetHashCode()]);
+        var turretBaseEntity = entityManager.Instantiate(entities[definition.basePrefab.GetHashCode()]);
         entityManager.SetComponentData(
-            baseInstance,
+            turretBaseEntity,
             new Translation { Value = info.position }
         );
 
         var rotation = quaternion.EulerXYZ(math.radians(info.facing.x), math.radians(info.facing.y), math.radians(info.facing.z));
         entityManager.SetComponentData(
-            baseInstance,
+            turretBaseEntity,
             new Rotation { Value = rotation }
         );
 
         var gun = definition.gun;
-        var instance = entityManager.Instantiate(entities[gun.prefab.GetHashCode()]);
+        var turretGunEntity = entityManager.Instantiate(entities[gun.prefab.GetHashCode()]);
         TeamTag tag = team.toComponent();
-        tag.AssignToEntity(entityManager, instance);
+        tag.AssignToEntity(entityManager, turretGunEntity);
 
-        entityManager.AddComponent(instance, typeof(LocalToParent));
-        entityManager.AddComponent(instance, typeof(Parent));
+        entityManager.AddComponent(turretGunEntity, typeof(LocalToParent));
+        entityManager.AddComponent(turretGunEntity, typeof(Parent));
         entityManager.SetComponentData<Parent>(
-            instance,
-            new Parent { Value = baseInstance }
+            turretGunEntity,
+            new Parent { Value = turretBaseEntity }
         );
 
         entityManager.SetComponentData(
-            instance,
+            turretGunEntity,
             new Translation { Value = definition.gunOffset }
         );
         entityManager.SetComponentData(
-            instance,
+            turretGunEntity,
             new Rotation { Value = rotation }
         );
-        entityManager.AddComponentData(instance, new GunData {
+        entityManager.AddComponentData(turretGunEntity, new GunData {
             projectileEntity = entities[gun.projectile.prefab.GetHashCode()],
             projectileOffset = gun.barrelOffset,
             muzzleFlashEffect = gun.muzzleEffectPrefab.GetHashCode(),
@@ -87,7 +87,7 @@ class TurretInstantiator {
             parentRotation = parentRotation,
         });
 
-        entityManager.AddComponentData(instance, new GunState {
+        entityManager.AddComponentData(turretGunEntity, new GunState {
             currentFireInterval = 0,
             currentReloadInterval = 0,
             shotsRemaining = 4,
@@ -95,7 +95,7 @@ class TurretInstantiator {
             targetPitchDelta = math.PI / 2f,
         });
 
-        return baseInstance;
+        return turretBaseEntity;
     }
 
     public static void onShotFired(int effect, float3 position, quaternion rotationQuaternion) {
