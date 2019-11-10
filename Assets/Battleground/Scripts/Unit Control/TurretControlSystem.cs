@@ -93,8 +93,9 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
             ref GunState state,
             [ReadOnly] ref HasTarget targetData) {
 
-        if (math.abs(state.targetRotationDelta) > gun.shotDeviation) { return; }
-        if (math.abs(state.targetPitchDelta) > gun.shotDeviation) { return; }
+        var tolerance = math.radians(3);
+        if (math.abs(state.targetRotationDelta) > gun.shotDeviation + tolerance) { return; }
+        if (math.abs(state.targetPitchDelta) > gun.shotDeviation + tolerance) { return; }
 
         if (state.shotsRemaining > 0) {
             if (state.currentFireInterval > 0) {

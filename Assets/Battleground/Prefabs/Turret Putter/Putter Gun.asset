@@ -18,10 +18,10 @@ MonoBehaviour:
   projectile: {fileID: 11400000, guid: ec17954ee7640b54abe6042804d7c193, type: 2}
   barrelOffset: {x: 0, y: 0.52, z: 1.3}
   muzzleVelocity: 100
-  reloadInterval: 0.5
+  reloadInterval: 0.2
   fireInterval: 0.1
-  shotsPerReload: 3
-  shotDeviationDegrees: 5
+  shotsPerReload: 1
+  shotDeviationDegrees: 0
   maximumPitchDeltaDegrees: 21
   rotationSpeed: 1
   pitchSpeed: 5
