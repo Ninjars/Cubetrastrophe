@@ -1,4 +1,3 @@
-using System.Threading;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
@@ -11,7 +10,7 @@ using UnityEngine;
 
 // credit for aid with the quaternion -> axis angle maths https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm
 [BurstCompile]
-struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, HasTarget, GunState> {
+struct RotateTurretJob : IJobForEach<LocalToWorld, PhysicsVelocity, Rotation, GunData, HasTarget, GunState> {
     private readonly static float PITCH_UPDATE_ANGLE = math.PI / 4f;
     private readonly static float HALF_PI = math.PI / 2f;
     private readonly static float DOUBLE_PI = math.PI * 2f;
@@ -31,14 +30,15 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, Ha
 
     public void Execute(
             [ReadOnly] ref LocalToWorld transform,
-            [ReadOnly] ref Parent parent,
+            [ReadOnly] ref PhysicsVelocity velocity,
             ref Rotation rotation,
             [ReadOnly] ref GunData gun,
             [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
-
-        // TODO: account for target and turret velocities. Make approximation of travel time based on linear distance with small increasing component to account for arc of path.
         var targetVector = targetData.targetPosition - transform.Position;
+        var approxTravelTime = math.sqrt(targetVector.x * targetVector.x + targetVector.y * targetVector.y + targetVector.z * targetVector.z) / gun.projectileVelocity;
+
+        targetVector = (targetData.targetPosition + approxTravelTime * targetData.targetVelocity) - (transform.Position + approxTravelTime * velocity.Linear);
 
         // rotate relative vector into local space
         var globalRotation = gun.getParentRotation();
@@ -172,7 +172,7 @@ public class TurretControlSystem : JobComponentSystem {
         // Cached access to a set of ComponentData based on a specific query
         rotationQueryGroup = GetEntityQuery(
             ComponentType.ReadOnly<LocalToWorld>(),
-            ComponentType.ReadOnly<Parent>(),
+            ComponentType.ReadOnly<PhysicsVelocity>(),
             typeof(Rotation),
             ComponentType.ReadOnly<GunData>(),
             ComponentType.ReadOnly<HasTarget>(),

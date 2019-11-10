@@ -44,6 +44,7 @@ static class TeamExtensions {
 public struct HasTarget : IComponentData {
     public Entity targetEntity;
     public float3 targetPosition;
+    public float3 targetVelocity;
     public float refreshTargetPeriod;
     public float elapsedRefreshTime;
 }
