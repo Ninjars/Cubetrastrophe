@@ -14,7 +14,7 @@ public class StressTestSpawner : MonoBehaviour {
         float offset = spacing * -count / 2;
         for (int x = 0; x < count; x++) {
             for (int y = 0; y < count; y++) {
-                spawnTargetEntity(offset + spacing * x, spacing * y, -spacing * y);
+                spawnTargetEntity(offset + spacing * x, 0, -spacing * y);
 
             }
         }
