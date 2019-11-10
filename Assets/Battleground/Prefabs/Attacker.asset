@@ -9,15 +9,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 0}
+  m_Script: {fileID: 11500000, guid: a0e16ca274c7534409536995471872de, type: 3}
   m_Name: Attacker
   m_EditorClassIdentifier: Assembly-CSharp::UnitDefinition
   bodyPrefab: {fileID: 5320229724215936008, guid: 381b73997203b49839c1ed1e3fe3b350,
     type: 3}
-  turretPrefab: {fileID: 3797769344017613159, guid: cbf134461d240a04d9084c70d28c101a,
-    type: 3}
   turretPositionInfo:
-  - position:
+  - definition: {fileID: 11400000, guid: 7b251d049d308474390491cb84c91ceb, type: 2}
+    position:
       x: 3.5
       y: 5
       z: -1
@@ -25,7 +24,8 @@ MonoBehaviour:
       x: 0
       y: 0
       z: -90
-  - position:
+  - definition: {fileID: 11400000, guid: 7b251d049d308474390491cb84c91ceb, type: 2}
+    position:
       x: -3.5
       y: 5
       z: -1
