@@ -37,10 +37,10 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, Ha
             [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
 
-        var targetVector = math.normalize(targetData.targetPosition - transform.Position);
+        // TODO: account for target and turret velocities. Make approximation of travel time based on linear distance with small increasing component to account for arc of path.
+        var targetVector = targetData.targetPosition - transform.Position;
 
         // rotate relative vector into local space
-        // var parentRotation = World.Active.EntityManager.GetComponentData<Rotation>(parent.Value);
         var globalRotation = gun.getParentRotation();
         targetVector = math.mul(math.mul(math.inverse(gun.neutralRotation), math.inverse(globalRotation)), targetVector);
 
@@ -56,8 +56,7 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, Ha
         state.currentRotation += math.clamp(deltaRotation, -rotThisFrame, rotThisFrame);
 
         // pitch
-        var horizontalLength = math.sqrt(targetVector.x * targetVector.x + targetVector.z * targetVector.z);
-        var targetPitch = (math.atan(horizontalLength / targetVector.y) + DOUBLE_PI) % (math.PI);
+        var targetPitch = (HALF_PI - calculateTargetPitch(targetVector, gun.projectileVelocity, 9.8f)) % math.PI;
         var pitchThisFrame = deltaTime * gun.pitchSpeed;
         
         var deltaPitch = (targetPitch - state.currentPitch);
@@ -72,6 +71,15 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, Ha
         // used for deciding whether to shoot
         state.targetRotationDelta = deltaRotation;
         state.targetPitchDelta = deltaPitch;
+    }
+
+    private float calculateTargetPitch(float3 relativeTargetVector, float projectileVelocity, float verticalAcceleration) {
+        float dx = math.sqrt(relativeTargetVector.x * relativeTargetVector.x + relativeTargetVector.z * relativeTargetVector.z);
+        float dy = relativeTargetVector.y;
+        var v2 = projectileVelocity * projectileVelocity;
+        var v4 = v2 * v2;
+        var dx2 = dx * dx;
+        return math.atan2(v2 - math.sqrt(v4 - verticalAcceleration * (verticalAcceleration * dx2 + 2 * dy * v2)), verticalAcceleration * dx);
     }
 }
 
