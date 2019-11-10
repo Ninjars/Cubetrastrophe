@@ -14,23 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UnitDefinition
   bodyPrefab: {fileID: 5320229724215936008, guid: 381b73997203b49839c1ed1e3fe3b350,
     type: 3}
-  turretPositionInfo:
-  - definition: {fileID: 11400000, guid: 7b251d049d308474390491cb84c91ceb, type: 2}
-    position:
-      x: 3.5
-      y: 5
-      z: -1
-    facing:
-      x: 0
-      y: 0
-      z: -90
-  - definition: {fileID: 11400000, guid: 7b251d049d308474390491cb84c91ceb, type: 2}
-    position:
-      x: -3.5
-      y: 5
-      z: -1
-    facing:
-      x: 0
-      y: 0
-      z: 90
+  turretPositionInfo: []
+  initialVelocity: {x: 5, y: 0, z: 0}
   team: 2

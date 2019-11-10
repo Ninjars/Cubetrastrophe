@@ -7,6 +7,7 @@ using UnityEngine;
 public class UnitDefinition : ScriptableObject {
     public GameObject bodyPrefab;
     public List<TurretInfo> turretPositionInfo;
+    public Vector3 initialVelocity;
     public Team team;
 }
 
