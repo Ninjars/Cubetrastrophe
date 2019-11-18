@@ -1,4 +1,5 @@
 using Unity.Entities;
+using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
 
@@ -24,6 +25,10 @@ public class UnitSpawner : MonoBehaviour {
             new Rotation { Value = transform.rotation }
         );
         TeamTag tag = unitDef.team.toComponent();
+        entityManager.SetComponentData(
+            entity,
+            new PhysicsVelocity { Linear = unitDef.initialVelocity }
+        );
         tag.AssignToEntity(entityManager, entity);
 
         var baseRotation = entityManager.GetComponentData<Rotation>(entity);

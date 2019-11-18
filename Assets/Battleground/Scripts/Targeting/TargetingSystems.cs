@@ -3,6 +3,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using Unity.Physics;
 using Unity.Transforms;
 using UnityEngine;
 
@@ -10,12 +11,15 @@ static class TargetingSystemUtils {
     public struct EntityWithPosition {
         public Entity entity;
         public float3 position;
+        public float3 velocity;
     }
 
+    [BurstCompile]
     public static EntityWithPosition getClosestTarget(NativeArray<EntityWithPosition> targetArray, ref LocalToWorld translation) {
         Entity closest = Entity.Null;
         float3 unitPosition = translation.Position;
         float3 matchedTargetPosition = float3.zero;
+        float3 targetVelocity = float3.zero;
         float bestDistance = float.MaxValue;
 
         for (int i = 0; i < targetArray.Length; i++) {
@@ -28,16 +32,18 @@ static class TargetingSystemUtils {
                 closest = targetEntity;
                 bestDistance = distance;
                 matchedTargetPosition = targetPosition;
+                targetVelocity = item.velocity;
 
             } else {
                 if (distance < bestDistance) {
                     closest = targetEntity;
                     bestDistance = distance;
                     matchedTargetPosition = targetPosition;
+                    targetVelocity = item.velocity;
                 }
             }
         }
-        return new EntityWithPosition { entity = closest, position = matchedTargetPosition };
+        return new EntityWithPosition { entity = closest, position = matchedTargetPosition, velocity = targetVelocity };
     }
 
     public static void assignTarget(
@@ -50,6 +56,7 @@ static class TargetingSystemUtils {
             commandBuffer.AddComponent(index, entity, new HasTarget {
                 targetEntity = target.entity,
                 targetPosition = target.position,
+                targetVelocity = target.velocity,
                 refreshTargetPeriod = 2f,
                 elapsedRefreshTime = 0f,
             });
@@ -93,7 +100,7 @@ public class TeamAFindTargetJobSystem : JobComponentSystem {
 
     protected override void OnCreate() {
         endSimCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
-        targetsQuery = GetEntityQuery(typeof(BTeamTag), ComponentType.ReadOnly<LocalToWorld>());
+        targetsQuery = GetEntityQuery(typeof(BTeamTag), ComponentType.ReadOnly<LocalToWorld>(), ComponentType.ReadOnly<PhysicsVelocity>());
         searchersQuery = GetEntityQuery(typeof(ATeamTag), ComponentType.Exclude<HasTarget>());
     }
 
@@ -102,6 +109,7 @@ public class TeamAFindTargetJobSystem : JobComponentSystem {
         // We want both entity and translation information about the target, so extract this from the target query.
         var targetEntities = targetsQuery.ToEntityArray(Allocator.TempJob);
         var targetTranslations = targetsQuery.ToComponentDataArray<LocalToWorld>(Allocator.TempJob);
+        var targetVelocities = targetsQuery.ToComponentDataArray<PhysicsVelocity>(Allocator.TempJob);
 
         // Construct a new array that merges the two data types together into simple structs.
         var targetArray = new NativeArray<TargetingSystemUtils.EntityWithPosition>(targetEntities.Length, Allocator.TempJob);
@@ -109,12 +117,14 @@ public class TeamAFindTargetJobSystem : JobComponentSystem {
             targetArray[i] = new TargetingSystemUtils.EntityWithPosition {
                 entity = targetEntities[i],
                 position = targetTranslations[i].Position,
+                velocity = targetVelocities[i].Linear,
             };
         }
 
         // Clear up the intermediate native arrays; the native arrays passed to jobs are marked to be automatically deallocated.
         targetEntities.Dispose();
         targetTranslations.Dispose();
+        targetVelocities.Dispose();
 
         // We need to extract the closest target per searching unit, so we need an array whose length matches the unit count.
         var closestTargetArray = new NativeArray<TargetingSystemUtils.EntityWithPosition>(searchersQuery.CalculateEntityCount(), Allocator.TempJob);
@@ -176,7 +186,7 @@ public class TeamBFindTargetJobSystem : JobComponentSystem {
 
     protected override void OnCreate() {
         endSimCommandBufferSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
-        targetsQuery = GetEntityQuery(typeof(ATeamTag), ComponentType.ReadOnly<LocalToWorld>());
+        targetsQuery = GetEntityQuery(typeof(ATeamTag), ComponentType.ReadOnly<LocalToWorld>(), ComponentType.ReadOnly<PhysicsVelocity>());
         searchersQuery = GetEntityQuery(typeof(BTeamTag), ComponentType.Exclude<HasTarget>());
     }
 
@@ -185,6 +195,7 @@ public class TeamBFindTargetJobSystem : JobComponentSystem {
         // We want both entity and translation information about the target, so extract this from the target query.
         var targetEntities = targetsQuery.ToEntityArray(Allocator.TempJob);
         var targetTranslations = targetsQuery.ToComponentDataArray<LocalToWorld>(Allocator.TempJob);
+        var targetVelocities = targetsQuery.ToComponentDataArray<PhysicsVelocity>(Allocator.TempJob);
 
         // Construct a new array that merges the two data types together into simple structs.
         var targetArray = new NativeArray<TargetingSystemUtils.EntityWithPosition>(targetEntities.Length, Allocator.TempJob);
@@ -192,12 +203,14 @@ public class TeamBFindTargetJobSystem : JobComponentSystem {
             targetArray[i] = new TargetingSystemUtils.EntityWithPosition {
                 entity = targetEntities[i],
                 position = targetTranslations[i].Position,
+                velocity = targetVelocities[i].Linear,
             };
         }
 
         // Clear up the intermediate native arrays; the native arrays passed to jobs are marked to be automatically deallocated.
         targetEntities.Dispose();
         targetTranslations.Dispose();
+        targetVelocities.Dispose();
 
         // We need to extract the closest target per searching unit, so we need an array whose length matches the unit count.
         var closestTargetArray = new NativeArray<TargetingSystemUtils.EntityWithPosition>(searchersQuery.CalculateEntityCount(), Allocator.TempJob);

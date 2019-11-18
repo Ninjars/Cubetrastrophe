@@ -1,4 +1,3 @@
-using System.Threading;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
@@ -11,7 +10,7 @@ using UnityEngine;
 
 // credit for aid with the quaternion -> axis angle maths https://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToAngle/index.htm
 [BurstCompile]
-struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, HasTarget, GunState> {
+struct RotateTurretJob : IJobForEach<LocalToWorld, PhysicsVelocity, Rotation, GunData, HasTarget, GunState> {
     private readonly static float PITCH_UPDATE_ANGLE = math.PI / 4f;
     private readonly static float HALF_PI = math.PI / 2f;
     private readonly static float DOUBLE_PI = math.PI * 2f;
@@ -31,16 +30,17 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, Ha
 
     public void Execute(
             [ReadOnly] ref LocalToWorld transform,
-            [ReadOnly] ref Parent parent,
+            [ReadOnly] ref PhysicsVelocity velocity,
             ref Rotation rotation,
             [ReadOnly] ref GunData gun,
             [ReadOnly] ref HasTarget targetData,
             ref GunState state) {
+        var targetVector = targetData.targetPosition - transform.Position;
+        var approxTravelTime = math.sqrt(targetVector.x * targetVector.x + targetVector.y * targetVector.y + targetVector.z * targetVector.z) / gun.projectileVelocity;
 
-        var targetVector = math.normalize(targetData.targetPosition - transform.Position);
+        targetVector = (targetData.targetPosition + approxTravelTime * targetData.targetVelocity) - (transform.Position + approxTravelTime * velocity.Linear);
 
         // rotate relative vector into local space
-        // var parentRotation = World.Active.EntityManager.GetComponentData<Rotation>(parent.Value);
         var globalRotation = gun.getParentRotation();
         targetVector = math.mul(math.mul(math.inverse(gun.neutralRotation), math.inverse(globalRotation)), targetVector);
 
@@ -56,8 +56,7 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, Ha
         state.currentRotation += math.clamp(deltaRotation, -rotThisFrame, rotThisFrame);
 
         // pitch
-        var horizontalLength = math.sqrt(targetVector.x * targetVector.x + targetVector.z * targetVector.z);
-        var targetPitch = (math.atan(horizontalLength / targetVector.y) + DOUBLE_PI) % (math.PI);
+        var targetPitch = (HALF_PI - calculateTargetPitch(targetVector, gun.projectileVelocity, 9.8f)) % math.PI;
         var pitchThisFrame = deltaTime * gun.pitchSpeed;
         
         var deltaPitch = (targetPitch - state.currentPitch);
@@ -72,6 +71,15 @@ struct RotateTurretJob : IJobForEach<LocalToWorld, Parent, Rotation, GunData, Ha
         // used for deciding whether to shoot
         state.targetRotationDelta = deltaRotation;
         state.targetPitchDelta = deltaPitch;
+    }
+
+    private float calculateTargetPitch(float3 relativeTargetVector, float projectileVelocity, float verticalAcceleration) {
+        float dx = math.sqrt(relativeTargetVector.x * relativeTargetVector.x + relativeTargetVector.z * relativeTargetVector.z);
+        float dy = relativeTargetVector.y;
+        var v2 = projectileVelocity * projectileVelocity;
+        var v4 = v2 * v2;
+        var dx2 = dx * dx;
+        return math.atan2(v2 - math.sqrt(v4 - verticalAcceleration * (verticalAcceleration * dx2 + 2 * dy * v2)), verticalAcceleration * dx);
     }
 }
 
@@ -93,8 +101,9 @@ struct FireTurretJob : IJobForEachWithEntity<LocalToWorld, Rotation, GunData, Gu
             ref GunState state,
             [ReadOnly] ref HasTarget targetData) {
 
-        if (math.abs(state.targetRotationDelta) > gun.shotDeviation) { return; }
-        if (math.abs(state.targetPitchDelta) > gun.shotDeviation) { return; }
+        var tolerance = math.radians(3);
+        if (math.abs(state.targetRotationDelta) > gun.shotDeviation + tolerance) { return; }
+        if (math.abs(state.targetPitchDelta) > gun.shotDeviation + tolerance) { return; }
 
         if (state.shotsRemaining > 0) {
             if (state.currentFireInterval > 0) {
@@ -163,7 +172,7 @@ public class TurretControlSystem : JobComponentSystem {
         // Cached access to a set of ComponentData based on a specific query
         rotationQueryGroup = GetEntityQuery(
             ComponentType.ReadOnly<LocalToWorld>(),
-            ComponentType.ReadOnly<Parent>(),
+            ComponentType.ReadOnly<PhysicsVelocity>(),
             typeof(Rotation),
             ComponentType.ReadOnly<GunData>(),
             ComponentType.ReadOnly<HasTarget>(),
